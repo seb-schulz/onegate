@@ -1,0 +1,1 @@
+# go-typescript-graphql-scaffolding
