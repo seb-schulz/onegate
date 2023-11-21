@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/go:1
+    volumes:
+      - ..:/workspaces/onegate:cached
+    command: sleep infinity
+    depends_on:
+      - db
+    links:
+      - db
+    environment:
+      DB_DSN: "onegate:.test.@tcp(db:3306)/onegate?charset=utf8&parseTime=True"
+  db:
+    image: docker.io/library/mariadb:11
+    restart: unless-stopped
+    environment:
+      - MARIADB_DATABASE=onegate
+      - MARIADB_USER=onegate
+      - MARIADB_PASSWORD=.test.
+      - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=1
+    volumes:
+      - ../data:/var/lib/mysql
+    ports:
+      - 3306:3306
