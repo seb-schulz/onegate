@@ -356,3 +356,4 @@ __debug_bin*
 # Go workspace file
 go.work
 /data
+.env

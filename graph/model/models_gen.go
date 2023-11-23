@@ -2,6 +2,27 @@
 
 package model
 
+type CreateCredentialOptions struct {
+	Challenge        string             `json:"challenge"`
+	Rp               RelyingParty       `json:"rp"`
+	PubKeyCredParams []*PubKeyCredParam `json:"pubKeyCredParams"`
+	User             User               `json:"user"`
+}
+
 type Hello struct {
 	Name string `json:"name"`
+}
+
+type PubKeyCredParam struct {
+	Type string `json:"type"`
+	Alg  int    `json:"alg"`
+}
+
+type RelyingParty struct {
+	Name string `json:"name"`
+	ID   string `json:"id"`
+}
+
+type User struct {
+	ID string `json:"id"`
 }

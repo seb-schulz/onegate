@@ -6,8 +6,7 @@ import { initReactI18next } from "react-i18next";
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import Greet from './Greet';
-import { Button, Col, Container, Row } from 'react-bootstrap';
+import { Button, Col, Container, Navbar, Row, Stack } from 'react-bootstrap';
 import AuthenticateCard from './Authenticate';
 
 i18n
@@ -25,15 +24,6 @@ const client = new ApolloClient({
     cache: new InMemoryCache(),
 });
 
-// client.query({
-//     query: gql`
-//         {
-//         hello(name: "Waldo") {
-//             name
-//         }
-//         }
-// `}).then((result) => console.log(result));
-
 const root = ReactDOM.createRoot(
     document.getElementById('root') as HTMLElement
 );
@@ -41,14 +31,19 @@ const root = ReactDOM.createRoot(
 root.render(
     <React.StrictMode>
         <ApolloProvider client={client}>
-            <Container>
-                <Row>
-                    <Col><Greet /></Col>
-                </Row>
-                <Row>
-                    <Col xs={6}><AuthenticateCard /></Col>
-                </Row>
-            </Container>
+            <Stack gap={2}>
+
+                <Navbar expand="lg" className="bg-body-tertiary">
+                    <Container>
+                        <Navbar.Brand>OneGate</Navbar.Brand>
+                    </Container>
+                </Navbar>
+                <Container>
+                    <Row>
+                        <Col md={6} xs={true}><AuthenticateCard /></Col>
+                    </Row>
+                </Container>
+            </Stack>
 
 
         </ApolloProvider>

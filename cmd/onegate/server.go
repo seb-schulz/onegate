@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -15,8 +14,6 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
-
-const defaultPort = "9000"
 
 type User struct {
 	gorm.Model
@@ -33,8 +30,12 @@ type Passkeys struct {
 }
 
 var defaultConfig = []byte(`
+rp:
+  name: "NOT_CONFIGURED_YET"
+  id: "NOT_CONFIGURED_YET"
 db:
   dsn: "NOT_CONFIGURED_YET"
+httpPort: 9000
 `)
 
 func main() {
@@ -42,11 +43,6 @@ func main() {
 	viper.ReadConfig(bytes.NewBuffer(defaultConfig))
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
-	}
 
 	db, err := gorm.Open(mysql.Open(viper.GetString("db.dsn")), &gorm.Config{})
 	if err != nil {
@@ -74,6 +70,7 @@ func main() {
 
 	addGraphQLPlayground()
 
+	port := viper.GetString("httpPort")
 	fmt.Println("Server listening on port ", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalln(err)

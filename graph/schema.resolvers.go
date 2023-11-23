@@ -8,11 +8,28 @@ import (
 	"context"
 
 	"github.com/seb-schulz/onegate/graph/model"
+	"github.com/spf13/viper"
 )
 
 // Hello is the resolver for the hello field.
 func (r *queryResolver) Hello(ctx context.Context, name string) (*model.Hello, error) {
 	return &model.Hello{Name: name}, nil
+}
+
+// CreateCredentialOptions is the resolver for the createCredentialOptions field.
+func (r *queryResolver) CreateCredentialOptions(ctx context.Context) (*model.CreateCredentialOptions, error) {
+	return &model.CreateCredentialOptions{
+		Challenge: mustRandomEncodedBytes(32),
+		Rp: model.RelyingParty{
+			Name: viper.GetString("rp.name"),
+			ID:   viper.GetString("rp.id"),
+		},
+		PubKeyCredParams: []*model.PubKeyCredParam{
+			{Alg: -7, Type: "public-key"},
+			{Alg: -257, Type: "public-key"},
+		},
+		User: model.User{ID: mustRandomEncodedBytes(16)},
+	}, nil
 }
 
 // Query returns QueryResolver implementation.

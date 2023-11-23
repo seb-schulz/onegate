@@ -6,8 +6,33 @@ type Hello {
   name: String!
 }
 
+type PubKeyCredParam {
+  type: String!
+  alg: Int!
+}
+
+type RelyingParty {
+  name: String!
+  id: String!
+}
+
+type User {
+  id: String!
+  # name: String!
+  # displayName: String
+}
+
+type CreateCredentialOptions {
+  challenge: String!
+  rp: RelyingParty!
+  pubKeyCredParams: [PubKeyCredParam]!
+  user: User!
+}
+
 type Query {
   hello(name: String!): Hello
+
+  createCredentialOptions : CreateCredentialOptions
 }
 
 # type Mutation {
