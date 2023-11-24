@@ -17,7 +17,7 @@ import (
 
 type User struct {
 	gorm.Model
-	PasskeyID string `gorm:"type:BLOB(16);index:,unique;default:RANDOM_BYTES(16)"`
+	PasskeyID string `gorm:"type:BLOB(16);default:RANDOM_BYTES(16);not null"`
 }
 
 type Passkeys struct {
@@ -48,15 +48,14 @@ func main() {
 	if err != nil {
 		panic("failed to connect database")
 	}
-	log.Println("Connected to db.")
 
-	// if err := db.Migrator().DropTable(Temperature{}, Humidity{}, Battery{}, Wind{}, Meta{}, Position{}); err != nil {
-	// 	log.Fatalln("Cannot drop old tables: ", err)
-	// }
-
-	// Migrate the schema
 	if err := db.AutoMigrate(User{}, Passkeys{}); err != nil {
 		log.Fatalln("Migration failed: ", err)
+	}
+
+	// Manual migration was added because tags generated multiple indexes
+	if !db.Migrator().HasIndex(&User{}, "idx_user_passkey_id_uniq") {
+		db.Exec("CREATE UNIQUE INDEX idx_user_passkey_id_uniq ON users(passkey_id)")
 	}
 
 	http.Handle("/", ui.Template("index.html.tmpl"))
