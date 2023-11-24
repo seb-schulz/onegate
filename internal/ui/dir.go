@@ -35,6 +35,7 @@ func init() {
 		MinifyWhitespace:  true,
 		MinifyIdentifiers: true,
 		MinifySyntax:      true,
+		Sourcemap:         api.SourceMapInline,
 	})
 	if err != nil {
 		log.Fatalln("Cannot init esbuild watch: ", err)
