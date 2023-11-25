@@ -54,13 +54,13 @@ func PublicFile() http.Handler {
 	return http.FileServer(http.Dir(path.Join(path.Dir(fileName()), "_public")))
 }
 
-func Template(filename string) http.Handler {
+func Template(filename string, contextFunc TemplateContextFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t, err := template.ParseFS(os.DirFS(path.Join(path.Dir(fileName()), "_templates")), "*.tmpl")
 		if err != nil {
 			log.Fatalln("Cannot read template files: ", err)
 		}
 
-		t.ExecuteTemplate(w, filename, nil)
+		t.ExecuteTemplate(w, filename, contextFunc())
 	})
 }

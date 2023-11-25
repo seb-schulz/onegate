@@ -1,6 +1,7 @@
 import * as React from 'react'
 import ReactDOM from 'react-dom/client';
-import { ApolloClient, InMemoryCache, ApolloProvider, gql } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloProvider, gql, createHttpLink } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
@@ -19,14 +20,39 @@ i18n
         fallbackLng: "en",
     });
 
+const JWT_TOKEN_KEY = 'jwt-token';
+
+const JWT_HEADER = (document.getElementsByName("jwt-header")[0] as HTMLMetaElement).content;
+
+const authLink = setContext((_, { headers }) => {
+    const token = localStorage.getItem(JWT_TOKEN_KEY);
+    console.log(JWT_HEADER);
+
+    const h = {
+        ...headers
+    }
+    if (token) {
+        h[JWT_HEADER] = token;
+    }
+    return {
+        headers: h
+    }
+});
+
 const client = new ApolloClient({
-    uri: '/query',
+    link: authLink.concat(createHttpLink({
+        uri: '/query',
+    })),
     cache: new InMemoryCache(),
 });
 
 const root = ReactDOM.createRoot(
     document.getElementById('root') as HTMLElement
 );
+
+if (localStorage.getItem(JWT_TOKEN_KEY) === null) {
+    localStorage.setItem(JWT_TOKEN_KEY, (document.getElementsByName("jwt-init-token")[0] as HTMLMetaElement).content)
+}
 
 root.render(
     <React.StrictMode>

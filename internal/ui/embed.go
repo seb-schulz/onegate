@@ -24,7 +24,16 @@ func StaticFiles() http.Handler {
 	return http.FileServer(http.FS(uiFS))
 }
 
-func Template(filename string) http.Handler {
+func PublicFile() http.Handler {
+	pFS, err := fs.Sub(UI, "_public")
+	if err != nil {
+		log.Fatal("failed to get ui fs", err)
+	}
+
+	return http.FileServer(http.FS(pFS))
+}
+
+func Template(filename string, contextFunc TemplateContextFunc) http.Handler {
 	tmplFs, err := fs.Sub(UI, "_templates")
 	if err != nil {
 		log.Fatal("failed to get template fs", err)
@@ -36,16 +45,6 @@ func Template(filename string) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		t.ExecuteTemplate(w, filename, nil)
+		t.ExecuteTemplate(w, filename, contextFunc())
 	})
-}
-
-func PublicFile() http.Handler {
-	pFS, err := fs.Sub(UI, "_public")
-	if err != nil {
-		log.Fatal("failed to get ui fs", err)
-	}
-
-	return http.FileServer(http.FS(pFS))
 }
