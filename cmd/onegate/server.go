@@ -2,16 +2,12 @@ package main
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/seb-schulz/onegate/graph"
 	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/ui"
@@ -25,6 +21,7 @@ jwt:
   header: x-jwt-token
   secret: "NOT_CONFIGURED_YET"
   expires_in: 1h
+  valid_methods: ["HS256", "HS384", "HS512"]
 rp:
   name: "NOT_CONFIGURED_YET"
   id: "NOT_CONFIGURED_YET"
@@ -32,42 +29,6 @@ db:
   dsn: "NOT_CONFIGURED_YET"
 httpPort: 9000
 `)
-
-func jwtAuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get(viper.GetString("jwt.header"))
-		if token == "" {
-			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte("Access forbidden"))
-			return
-		}
-		log.Println("Request for graph", token)
-		// TODO: Verify user
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func generateJwtToken(userID int) (string, error) {
-	characters := "ABCDEFGHIJKLMOPQRSTUVWXYZabcdefghijklmopqrstuvwxyz0123456789"
-	id_runes := make([]byte, 4)
-	for i := range id_runes {
-		id_runes[i] = characters[rand.Intn(len(characters))]
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.RegisteredClaims{
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(viper.GetDuration("jwt.expires_in"))),
-		ID:        string(id_runes),
-		Subject:   fmt.Sprintf("%x", userID),
-	})
-
-	secret, err := base64.StdEncoding.DecodeString(viper.GetString("jwt.secret"))
-	if err != nil {
-		return "", err
-	}
-
-	return token.SignedString(secret)
-}
 
 func main() {
 	viper.SetConfigType("yaml")
@@ -90,7 +51,7 @@ func main() {
 	}
 
 	http.Handle("/", ui.Template("index.html.tmpl", func() any {
-		token, err := generateJwtToken(model.AnonymousUserID)
+		token, err := generateJwtToken(model.AnonymousUser)
 		if err != nil {
 			panic(err)
 		}
