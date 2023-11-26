@@ -26,7 +26,6 @@ const JWT_HEADER = (document.getElementsByName("jwt-header")[0] as HTMLMetaEleme
 
 const authLink = setContext((_, { headers }) => {
     const token = localStorage.getItem(JWT_TOKEN_KEY);
-    console.log(JWT_HEADER);
 
     const h = {
         ...headers

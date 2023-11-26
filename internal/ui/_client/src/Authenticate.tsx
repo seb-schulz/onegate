@@ -15,9 +15,7 @@ query {
       type
       alg
     }
-    user {
-      id
-    }
+    userID
   }
 }
 `
@@ -65,12 +63,10 @@ function AuthenticateCard() {
                 return { alg: param.alg, type: param.type }
             }),
             user: {
-                id: b64ToUArray(data.createCredentialOptions.user.id),
+                id: b64ToUArray(data.createCredentialOptions.userID),
                 name: userName,
                 displayName: ''
             }
-
-
         };
 
         console.log("register", createCredentialOptions)

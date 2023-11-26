@@ -6,11 +6,7 @@ type CreateCredentialOptions struct {
 	Challenge        string             `json:"challenge"`
 	Rp               RelyingParty       `json:"rp"`
 	PubKeyCredParams []*PubKeyCredParam `json:"pubKeyCredParams"`
-	User             User               `json:"user"`
-}
-
-type Hello struct {
-	Name string `json:"name"`
+	UserID           string             `json:"userID"`
 }
 
 type PubKeyCredParam struct {
@@ -21,8 +17,4 @@ type PubKeyCredParam struct {
 type RelyingParty struct {
 	Name string `json:"name"`
 	ID   string `json:"id"`
-}
-
-type User struct {
-	ID string `json:"id"`
 }

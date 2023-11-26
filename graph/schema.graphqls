@@ -2,10 +2,6 @@
 #
 # https://gqlgen.com/getting-started/
 
-type Hello {
-  name: String!
-}
-
 type PubKeyCredParam {
   type: String!
   alg: Int!
@@ -16,25 +12,13 @@ type RelyingParty {
   id: String!
 }
 
-type User {
-  id: String!
-  # name: String!
-  # displayName: String
-}
-
 type CreateCredentialOptions {
   challenge: String!
   rp: RelyingParty!
   pubKeyCredParams: [PubKeyCredParam]!
-  user: User!
+  userID: String!
 }
 
 type Query {
-  hello(name: String!): Hello
-
   createCredentialOptions : CreateCredentialOptions
 }
-
-# type Mutation {
-#  createTodo(input: NewTodo!): Todo!
-# }
