@@ -21,4 +21,5 @@ type CreateCredentialOptions {
 
 type Query {
   createCredentialOptions : CreateCredentialOptions
+  redeemToken: String!
 }

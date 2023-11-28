@@ -9,6 +9,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/seb-schulz/onegate/graph"
+	"github.com/seb-schulz/onegate/internal/jwt"
 	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/ui"
 	"github.com/spf13/viper"
@@ -51,7 +52,7 @@ func main() {
 	}
 
 	http.Handle("/", ui.Template("index.html.tmpl", func() any {
-		token, err := generateJwtToken(model.AnonymousUser)
+		token, err := jwt.GenerateJwtToken(jwt.AnonymousUser)
 		if err != nil {
 			panic(err)
 		}
@@ -64,7 +65,8 @@ func main() {
 	http.Handle("/static/", ui.StaticFiles())
 
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
-	http.Handle("/query", jwtAuthMiddleware(srv))
+	http.Handle("/query", jwt.AuthMiddleware(srv))
+	// http.Handle("/query", srv)
 
 	addGraphQLPlayground()
 

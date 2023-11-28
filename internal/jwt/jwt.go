@@ -1,4 +1,4 @@
-package main
+package jwt
 
 import (
 	"crypto/subtle"
@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/spf13/viper"
 )
 
@@ -27,7 +26,7 @@ func (m claims) Validate() error {
 		return err
 	}
 
-	if subtle.ConstantTimeCompare([]byte(sub), []byte(model.AnonymousUser.Subject())) == 1 {
+	if subtle.ConstantTimeCompare([]byte(sub), []byte(AnonymousUser.Subject())) == 1 {
 		return nil
 	}
 
@@ -46,7 +45,7 @@ func getSecret() ([]byte, error) {
 	return base64.StdEncoding.DecodeString(viper.GetString("jwt.secret"))
 }
 
-func jwtAuthMiddleware(next http.Handler) http.Handler {
+func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenString := r.Header.Get(viper.GetString("jwt.header"))
 		if tokenString == "" {
@@ -72,7 +71,7 @@ func jwtAuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func generateJwtToken(user model.UserJwtConverter) (string, error) {
+func GenerateJwtToken(user UserJwtConverter) (string, error) {
 	characters := "ABCDEFGHIJKLMOPQRSTUVWXYZabcdefghijklmopqrstuvwxyz0123456789"
 	id_runes := make([]byte, 4)
 	for i := range id_runes {

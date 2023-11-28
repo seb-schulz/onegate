@@ -49,9 +49,47 @@ const root = ReactDOM.createRoot(
     document.getElementById('root') as HTMLElement
 );
 
-if (localStorage.getItem(JWT_TOKEN_KEY) === null) {
-    localStorage.setItem(JWT_TOKEN_KEY, (document.getElementsByName("jwt-init-token")[0] as HTMLMetaElement).content)
-}
+(() => {
+    type tokenBody = {
+        sub: string,
+        exp: number,
+    }
+
+    const REDEEM_TOKEN = gql`query { redeemToken }`;
+
+    function extractTokenBody(token: string): tokenBody {
+        const [_h, encodedBody, _s] = token.split('.');
+        return JSON.parse(atob(encodedBody))
+
+    }
+
+    function validToken(token: string | null): boolean {
+        if (token === null) return false;
+        const { exp } = extractTokenBody(token)
+        return Math.floor(Date.now() / 1000) < exp
+    }
+
+    function redeemToken() {
+        const newToken = 'abcd';
+        // localStorage.setItem(JWT_TOKEN_KEY, newToken);
+        // const { exp } = extractTokenBody(newToken);
+        console.log('redeem toke')
+        setupTimeout()
+    }
+
+    function setupTimeout() {
+        const token = localStorage.getItem(JWT_TOKEN_KEY) as string;
+        const { exp } = extractTokenBody(token)
+        setTimeout(redeemToken, 1000 * Math.floor(Math.min((exp - Math.floor(Date.now() / 1000)) / 2, 30 * 60 * 1000)))
+    }
+
+    if (!validToken(localStorage.getItem(JWT_TOKEN_KEY))) {
+        localStorage.setItem(JWT_TOKEN_KEY, (document.getElementsByName("jwt-init-token")[0] as HTMLMetaElement).content)
+    }
+
+    // setupTimeout()
+    // setTimeout(redeemToken, 1000)
+})()
 
 root.render(
     <React.StrictMode>

@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/seb-schulz/onegate/graph/model"
+	"github.com/seb-schulz/onegate/internal/jwt"
 	"github.com/spf13/viper"
 )
 
@@ -25,6 +26,12 @@ func (r *queryResolver) CreateCredentialOptions(ctx context.Context) (*model.Cre
 		},
 		UserID: mustRandomEncodedBytes(16),
 	}, nil
+}
+
+// RedeemToken is the resolver for the redeemToken field.
+func (r *queryResolver) RedeemToken(ctx context.Context) (string, error) {
+	// TODO: Check for user type via context
+	return jwt.GenerateJwtToken(jwt.AnonymousUser)
 }
 
 // Query returns QueryResolver implementation.
