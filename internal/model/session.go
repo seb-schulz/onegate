@@ -78,3 +78,17 @@ func getSessionIDByToken(token string) (uint, error) {
 
 	return id, nil
 }
+
+func FirstSessionByToken(db *gorm.DB, token string, session *Session) error {
+	id, err := getSessionIDByToken(token)
+	if err != nil {
+		return err
+	}
+
+	db.Preload("Users").FirstOrCreate(session, "id = ?", id)
+	return nil
+}
+
+func CreateSession(db *gorm.DB, session *Session) {
+	db.Create(session)
+}
