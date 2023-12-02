@@ -85,7 +85,7 @@ func FirstSessionByToken(db *gorm.DB, token string, session *Session) error {
 		return err
 	}
 
-	db.Preload("Users").FirstOrCreate(session, "id = ?", id)
+	db.Preload("User").FirstOrCreate(session, "id = ?", id)
 	return nil
 }
 

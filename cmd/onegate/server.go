@@ -10,6 +10,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/seb-schulz/onegate/graph"
 	"github.com/seb-schulz/onegate/internal/jwt"
+	"github.com/seb-schulz/onegate/internal/middleware"
 	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/ui"
 	"github.com/spf13/viper"
@@ -51,21 +52,23 @@ func main() {
 		db.Exec("CREATE UNIQUE INDEX idx_user_passkey_id_uniq ON users(passkey_id)")
 	}
 
-	http.Handle("/", ui.Template("index.html.tmpl", func() any {
+	http.Handle("/favicon.ico", ui.PublicFile())
+	http.Handle("/robots.txt", ui.PublicFile())
+
+	sessionMiddleware := middleware.SessionMiddleware(db)
+
+	http.Handle("/", sessionMiddleware(ui.Template("index.html.tmpl", func() any {
 		token, err := jwt.GenerateJwtToken(jwt.AnonymousUser)
 		if err != nil {
 			panic(err)
 		}
 		return map[string]any{"jwtInitToken": token, "jwtHeader": viper.GetString("jwt.header")}
-	}))
-
-	http.Handle("/favicon.ico", ui.PublicFile())
-	http.Handle("/robots.txt", ui.PublicFile())
+	})))
 
 	http.Handle("/static/", ui.StaticFiles())
 
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
-	http.Handle("/query", jwt.AuthMiddleware(srv))
+	http.Handle("/query", sessionMiddleware(srv))
 	// http.Handle("/query", srv)
 
 	addGraphQLPlayground()
