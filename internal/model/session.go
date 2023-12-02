@@ -52,6 +52,10 @@ func (s Session) Token() string {
 	return generateToken(s.ID, nonce())
 }
 
+func (s Session) String() string {
+	return fmt.Sprintf("Session(id=%d, userID=%v)", s.ID, s.UserID)
+}
+
 func getSessionIDByToken(token string) (uint, error) {
 	slicedToken := strings.Split(token, "-")
 	if len(slicedToken) != 3 {

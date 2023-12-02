@@ -21,5 +21,9 @@ type CreateCredentialOptions {
 
 type Query {
   createCredentialOptions : CreateCredentialOptions
-  redeemToken: String!
+redeemToken: String!
+}
+
+type Mutation {
+ createUser: Boolean!
 }

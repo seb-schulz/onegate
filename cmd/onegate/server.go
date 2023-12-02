@@ -67,7 +67,7 @@ func main() {
 
 	http.Handle("/static/", ui.StaticFiles())
 
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db.Debug()}}))
 	http.Handle("/query", sessionMiddleware(srv))
 	// http.Handle("/query", srv)
 

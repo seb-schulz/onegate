@@ -6,11 +6,38 @@ package graph
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/seb-schulz/onegate/graph/model"
 	"github.com/seb-schulz/onegate/internal/jwt"
+	"github.com/seb-schulz/onegate/internal/middleware"
+	dbmodel "github.com/seb-schulz/onegate/internal/model"
 	"github.com/spf13/viper"
+	"gorm.io/gorm"
 )
+
+// CreateUser is the resolver for the createUser field.
+func (r *mutationResolver) CreateUser(ctx context.Context) (bool, error) {
+	session := middleware.SessionFromContext(ctx)
+	if session == nil {
+		return false, fmt.Errorf("session is missing")
+	}
+
+	if session.UserID != nil {
+		return false, fmt.Errorf("currently logged in with an user")
+	}
+
+	user := dbmodel.User{}
+	if err := r.DB.Transaction(func(tx *gorm.DB) error {
+		tx.Create(&user)
+		tx.Model(&session).Update("user_id", user.ID)
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+
+	return true, nil
+}
 
 // CreateCredentialOptions is the resolver for the createCredentialOptions field.
 func (r *queryResolver) CreateCredentialOptions(ctx context.Context) (*model.CreateCredentialOptions, error) {
@@ -34,7 +61,11 @@ func (r *queryResolver) RedeemToken(ctx context.Context) (string, error) {
 	return jwt.GenerateJwtToken(jwt.AnonymousUser)
 }
 
+// Mutation returns MutationResolver implementation.
+func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

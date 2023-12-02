@@ -36,7 +36,7 @@ func SessionMiddleware(db *gorm.DB) func(http.Handler) http.Handler {
 
 			}
 
-			ctx := context.WithValue(r.Context(), contextSessionKey, session)
+			ctx := context.WithValue(r.Context(), contextSessionKey, &session)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
