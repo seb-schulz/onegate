@@ -94,3 +94,6 @@ models:
   # PubKeyCredParam:
   #   model:
   #     - github.com/seb-schulz/onegate/internal/models.PubKeyCredParam
+  # User:
+  #   model:
+  #     - github.com/seb-schulz/onegate/internal/models.User

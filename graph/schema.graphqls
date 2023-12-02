@@ -19,9 +19,14 @@ type CreateCredentialOptions {
   userID: String!
 }
 
+type User {
+  PasskeyID: String!
+}
+
 type Query {
-  createCredentialOptions : CreateCredentialOptions
-redeemToken: String!
+  createCredentialOptions: CreateCredentialOptions
+  redeemToken: String!
+  me: User
 }
 
 type Mutation {

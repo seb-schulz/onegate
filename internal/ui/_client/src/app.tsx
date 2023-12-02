@@ -7,8 +7,7 @@ import { initReactI18next } from "react-i18next";
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import { Button, Col, Container, Navbar, Row, Stack } from 'react-bootstrap';
-import AuthenticateCard from './Authenticate';
+import AppContainer from './AppContainer';
 
 i18n
     .use(initReactI18next) // passes i18n down to react-i18next
@@ -94,21 +93,7 @@ const root = ReactDOM.createRoot(
 root.render(
     <React.StrictMode>
         <ApolloProvider client={client}>
-            <Stack gap={2}>
-
-                <Navbar expand="lg" className="bg-body-tertiary">
-                    <Container>
-                        <Navbar.Brand>OneGate</Navbar.Brand>
-                    </Container>
-                </Navbar>
-                <Container>
-                    <Row>
-                        <Col md={6} xs={true}><AuthenticateCard /></Col>
-                    </Row>
-                </Container>
-            </Stack>
-
-
+            <AppContainer />
         </ApolloProvider>
     </React.StrictMode >
 );

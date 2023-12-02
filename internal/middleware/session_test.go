@@ -62,5 +62,4 @@ func TestSessionMiddleware(t *testing.T) {
 	if !checkCookie(w.Result(), "session") {
 		t.FailNow()
 	}
-	// TODO: Is it the same token the second time?
 }

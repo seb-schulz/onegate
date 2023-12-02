@@ -6,6 +6,7 @@ package graph
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/seb-schulz/onegate/graph/model"
@@ -59,6 +60,20 @@ func (r *queryResolver) CreateCredentialOptions(ctx context.Context) (*model.Cre
 func (r *queryResolver) RedeemToken(ctx context.Context) (string, error) {
 	// TODO: Check for user type via context
 	return jwt.GenerateJwtToken(jwt.AnonymousUser)
+}
+
+// Me is the resolver for the me field.
+func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
+	session := middleware.SessionFromContext(ctx)
+	if session == nil {
+		return nil, fmt.Errorf("session is missing")
+	}
+
+	if session.UserID == nil {
+		return nil, nil
+	}
+
+	return &model.User{PasskeyID: base64.StdEncoding.EncodeToString([]byte(session.User.PasskeyID))}, nil
 }
 
 // Mutation returns MutationResolver implementation.
