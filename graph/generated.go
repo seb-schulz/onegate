@@ -64,9 +64,8 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		CreateCredentialOptions func(childComplexity int) int
-		Me                      func(childComplexity int) int
-		RedeemToken             func(childComplexity int) int
+		Me          func(childComplexity int) int
+		RedeemToken func(childComplexity int) int
 	}
 
 	RelyingParty struct {
@@ -80,10 +79,9 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	CreateUser(ctx context.Context) (bool, error)
+	CreateUser(ctx context.Context) (*model.CreateCredentialOptions, error)
 }
 type QueryResolver interface {
-	CreateCredentialOptions(ctx context.Context) (*model.CreateCredentialOptions, error)
 	RedeemToken(ctx context.Context) (string, error)
 	Me(ctx context.Context) (*model.User, error)
 }
@@ -155,13 +153,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.PubKeyCredParam.Type(childComplexity), true
-
-	case "Query.createCredentialOptions":
-		if e.complexity.Query.CreateCredentialOptions == nil {
-			break
-		}
-
-		return e.complexity.Query.CreateCredentialOptions(childComplexity), true
 
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
@@ -588,9 +579,9 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(*model.CreateCredentialOptions)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNCreateCredentialOptions2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋgraphᚋmodelᚐCreateCredentialOptions(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -600,7 +591,17 @@ func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			switch field.Name {
+			case "challenge":
+				return ec.fieldContext_CreateCredentialOptions_challenge(ctx, field)
+			case "rp":
+				return ec.fieldContext_CreateCredentialOptions_rp(ctx, field)
+			case "pubKeyCredParams":
+				return ec.fieldContext_CreateCredentialOptions_pubKeyCredParams(ctx, field)
+			case "userID":
+				return ec.fieldContext_CreateCredentialOptions_userID(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CreateCredentialOptions", field.Name)
 		},
 	}
 	return fc, nil
@@ -689,57 +690,6 @@ func (ec *executionContext) fieldContext_PubKeyCredParam_alg(ctx context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_createCredentialOptions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_createCredentialOptions(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().CreateCredentialOptions(rctx)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.CreateCredentialOptions)
-	fc.Result = res
-	return ec.marshalOCreateCredentialOptions2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋgraphᚋmodelᚐCreateCredentialOptions(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Query_createCredentialOptions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "challenge":
-				return ec.fieldContext_CreateCredentialOptions_challenge(ctx, field)
-			case "rp":
-				return ec.fieldContext_CreateCredentialOptions_rp(ctx, field)
-			case "pubKeyCredParams":
-				return ec.fieldContext_CreateCredentialOptions_pubKeyCredParams(ctx, field)
-			case "userID":
-				return ec.fieldContext_CreateCredentialOptions_userID(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CreateCredentialOptions", field.Name)
 		},
 	}
 	return fc, nil
@@ -3042,25 +2992,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "createCredentialOptions":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_createCredentialOptions(ctx, field)
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "redeemToken":
 			field := field
 
@@ -3557,6 +3488,20 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNCreateCredentialOptions2githubᚗcomᚋsebᚑschulzᚋonegateᚋgraphᚋmodelᚐCreateCredentialOptions(ctx context.Context, sel ast.SelectionSet, v model.CreateCredentialOptions) graphql.Marshaler {
+	return ec._CreateCredentialOptions(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCreateCredentialOptions2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋgraphᚋmodelᚐCreateCredentialOptions(ctx context.Context, sel ast.SelectionSet, v *model.CreateCredentialOptions) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CreateCredentialOptions(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3906,13 +3851,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	}
 	res := graphql.MarshalBoolean(*v)
 	return res
-}
-
-func (ec *executionContext) marshalOCreateCredentialOptions2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋgraphᚋmodelᚐCreateCredentialOptions(ctx context.Context, sel ast.SelectionSet, v *model.CreateCredentialOptions) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._CreateCredentialOptions(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOPubKeyCredParam2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋgraphᚋmodelᚐPubKeyCredParam(ctx context.Context, sel ast.SelectionSet, v *model.PubKeyCredParam) graphql.Marshaler {

@@ -24,11 +24,10 @@ type User {
 }
 
 type Query {
-  createCredentialOptions: CreateCredentialOptions
   redeemToken: String!
   me: User
 }
 
 type Mutation {
- createUser: Boolean!
+ createUser: CreateCredentialOptions!
 }

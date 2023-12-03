@@ -19,7 +19,7 @@ func SessionMiddleware(db *gorm.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var session model.Session
-			tx := db.WithContext(context.Background()).Debug()
+			tx := db.WithContext(context.Background())
 			cookie, err := r.Cookie("session")
 			if err != nil {
 				model.CreateSession(tx, &session)

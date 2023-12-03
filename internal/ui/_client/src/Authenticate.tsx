@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { Alert, Button, Card, Form } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
-import { gql, useQuery } from "@apollo/client";
+import { gql, useMutation } from "@apollo/client";
 
-const CREATE_CREDENTIAL_OPTIONS_GQL = gql`
-query {
-  createCredentialOptions {
+const CREATE_USER_GQL = gql`
+mutation {
+  createUser {
     challenge
     rp {
       name
@@ -31,8 +31,8 @@ function AuthenticateCard() {
     const [validated, setValidated] = useState(false);
     const [userName, setUserName] = useState<string>("");
 
-    const { loading, error, data } = useQuery(CREATE_CREDENTIAL_OPTIONS_GQL);
-    // if (loading) return <p>Loading...</p>;
+    const [createUser, { loading, error }] = useMutation(CREATE_USER_GQL);
+    if (loading) return <p>Loading...</p>;
     if (error) return <p>Error : {error.message}</p>;
 
     const handleSubmit = (event: React.SyntheticEvent) => {
@@ -47,37 +47,31 @@ function AuthenticateCard() {
         event.stopPropagation();
         setValidated(true);
 
-        console.log(data.createCredentialOptions.pubKeyCredParams.map((param: { alg: COSEAlgorithmIdentifier, type: PublicKeyCredentialType }) => {
-            return { alg: param.alg, type: param.type }
-        }))
         if (!userName) return;
 
+        createUser()
+            .then(result => {
+                const data = result.data.createUser;
+                const createCredentialOptions = {
+                    challenge: b64ToUArray(data.challenge),
+                    rp: {
+                        name: data.rp.name,
+                        id: data.rp.id,
+                    },
+                    pubKeyCredParams: data.pubKeyCredParams.map((param: { alg: COSEAlgorithmIdentifier, type: PublicKeyCredentialType }) => {
+                        return { alg: param.alg, type: param.type }
+                    }),
+                    user: {
+                        id: b64ToUArray(data.userID),
+                        name: userName,
+                        displayName: ''
+                    }
+                } as PublicKeyCredentialCreationOptions;
 
-        const createCredentialOptions: PublicKeyCredentialCreationOptions = {
-            challenge: b64ToUArray(data.createCredentialOptions.challenge),
-            rp: {
-                name: data.createCredentialOptions.rp.name,
-                id: data.createCredentialOptions.rp.id,
-            },
-            pubKeyCredParams: data.createCredentialOptions.pubKeyCredParams.map((param: { alg: COSEAlgorithmIdentifier, type: PublicKeyCredentialType }) => {
-                return { alg: param.alg, type: param.type }
-            }),
-            user: {
-                id: b64ToUArray(data.createCredentialOptions.userID),
-                name: userName,
-                displayName: ''
-            }
-        };
-
-        console.log("register", createCredentialOptions)
-
-        navigator.credentials
-            .create({ publicKey: createCredentialOptions })
+                return navigator.credentials.create({ publicKey: createCredentialOptions });
+            })
             .then(newCredentialInfo => console.log(newCredentialInfo))
-            .catch((err) => {
-                console.error(err);
-            });
-
+            .catch(err => console.error(err));
     };
 
     return (

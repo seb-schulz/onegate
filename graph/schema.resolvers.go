@@ -18,14 +18,14 @@ import (
 )
 
 // CreateUser is the resolver for the createUser field.
-func (r *mutationResolver) CreateUser(ctx context.Context) (bool, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context) (*model.CreateCredentialOptions, error) {
 	session := middleware.SessionFromContext(ctx)
 	if session == nil {
-		return false, fmt.Errorf("session is missing")
+		return nil, fmt.Errorf("session is missing")
 	}
 
 	if session.UserID != nil {
-		return false, fmt.Errorf("currently logged in with an user")
+		return nil, fmt.Errorf("currently logged in with an user")
 	}
 
 	user := dbmodel.User{}
@@ -37,11 +37,6 @@ func (r *mutationResolver) CreateUser(ctx context.Context) (bool, error) {
 		panic(err)
 	}
 
-	return true, nil
-}
-
-// CreateCredentialOptions is the resolver for the createCredentialOptions field.
-func (r *queryResolver) CreateCredentialOptions(ctx context.Context) (*model.CreateCredentialOptions, error) {
 	return &model.CreateCredentialOptions{
 		Challenge: mustRandomEncodedBytes(32),
 		Rp: model.RelyingParty{
@@ -52,7 +47,7 @@ func (r *queryResolver) CreateCredentialOptions(ctx context.Context) (*model.Cre
 			{Alg: -7, Type: "public-key"},
 			{Alg: -257, Type: "public-key"},
 		},
-		UserID: mustRandomEncodedBytes(16),
+		UserID: user.Base64PasskeyID(),
 	}, nil
 }
 
