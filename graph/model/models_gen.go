@@ -18,7 +18,3 @@ type RelyingParty struct {
 	Name string `json:"name"`
 	ID   string `json:"id"`
 }
-
-type User struct {
-	PasskeyID string `json:"PasskeyID"`
-}

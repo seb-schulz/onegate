@@ -2,6 +2,9 @@
 #
 # https://gqlgen.com/getting-started/
 
+scalar CredentialCreation
+scalar CredentialCreationResponse
+
 type PubKeyCredParam {
   type: String!
   alg: Int!
@@ -20,7 +23,8 @@ type CreateCredentialOptions {
 }
 
 type User {
-  PasskeyID: String!
+  name: String!
+  displayName: String!
 }
 
 type Query {
@@ -29,5 +33,6 @@ type Query {
 }
 
 type Mutation {
- createUser: CreateCredentialOptions!
+ createUser(name: String!): CredentialCreation!
+ addPasskey(body: CredentialCreationResponse!): Boolean!
 }

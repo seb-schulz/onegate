@@ -85,15 +85,9 @@ models:
       - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
       - github.com/99designs/gqlgen/graphql.Int32
-  # RelyingParty:
-  #   model:
-  #     - github.com/seb-schulz/onegate/internal/models.RelyingParty
-  # CreateCredentialOptions:
-  #   model:
-  #     - github.com/seb-schulz/onegate/internal/models.CreateCredentialOptions
-  # PubKeyCredParam:
-  #   model:
-  #     - github.com/seb-schulz/onegate/internal/models.PubKeyCredParam
-  # User:
-  #   model:
-  #     - github.com/seb-schulz/onegate/internal/models.User
+  User:
+    model:
+      - github.com/seb-schulz/onegate/internal/model.User
+  CredentialCreation:
+    model:
+      - "github.com/seb-schulz/onegate/internal/model.CredentialCreation"

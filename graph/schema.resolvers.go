@@ -6,19 +6,21 @@ package graph
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
+	"log"
+	"strings"
 
-	"github.com/seb-schulz/onegate/graph/model"
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/protocol/webauthncose"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/seb-schulz/onegate/internal/jwt"
 	"github.com/seb-schulz/onegate/internal/middleware"
 	dbmodel "github.com/seb-schulz/onegate/internal/model"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 )
 
 // CreateUser is the resolver for the createUser field.
-func (r *mutationResolver) CreateUser(ctx context.Context) (*model.CreateCredentialOptions, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protocol.CredentialCreation, error) {
 	session := middleware.SessionFromContext(ctx)
 	if session == nil {
 		return nil, fmt.Errorf("session is missing")
@@ -28,7 +30,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context) (*model.CreateCredent
 		return nil, fmt.Errorf("currently logged in with an user")
 	}
 
-	user := dbmodel.User{}
+	user := dbmodel.User{Name: name}
 	if err := r.DB.Transaction(func(tx *gorm.DB) error {
 		tx.Create(&user)
 		tx.Model(&session).Update("user_id", user.ID)
@@ -37,18 +39,49 @@ func (r *mutationResolver) CreateUser(ctx context.Context) (*model.CreateCredent
 		panic(err)
 	}
 
-	return &model.CreateCredentialOptions{
-		Challenge: mustRandomEncodedBytes(32),
-		Rp: model.RelyingParty{
-			Name: viper.GetString("rp.name"),
-			ID:   viper.GetString("rp.id"),
-		},
-		PubKeyCredParams: []*model.PubKeyCredParam{
-			{Alg: -7, Type: "public-key"},
-			{Alg: -257, Type: "public-key"},
-		},
-		UserID: user.Base64PasskeyID(),
-	}, nil
+	options, webauthn_session, err := r.WebAuthn.BeginRegistration(user, webauthn.WithCredentialParameters([]protocol.CredentialParameter{{Type: protocol.PublicKeyCredentialType, Algorithm: webauthncose.AlgES256}, {Type: protocol.PublicKeyCredentialType, Algorithm: webauthncose.AlgRS256}}))
+	if err != nil {
+		return nil, err
+	}
+	r.DB.Create(&dbmodel.AuthSession{SessionID: session.ID, Data: *webauthn_session})
+
+	log.Println("UserID", user.WebAuthnID(), webauthn_session.UserID)
+
+	return options, nil
+}
+
+// AddPasskey is the resolver for the addPasskey field.
+func (r *mutationResolver) AddPasskey(ctx context.Context, body string) (bool, error) {
+	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(body))
+	if err != nil {
+		return false, err
+	}
+
+	session := middleware.SessionFromContext(ctx)
+	if session == nil {
+		return false, fmt.Errorf("session is missing")
+	}
+
+	if session.UserID == nil {
+		return false, fmt.Errorf("no user logged in")
+	}
+
+	auth_session := dbmodel.AuthSession{SessionID: session.ID}
+	if result := r.DB.First(&auth_session, "session_id = ?", session.ID); result.Error != nil {
+		return false, fmt.Errorf("no registration session found")
+	}
+	webauthn_session := auth_session.Data
+
+	log.Println("Origin", parsedResponse.Response.CollectedClientData, r.WebAuthn.Config)
+
+	cred, err := r.WebAuthn.CreateCredential(session.User, webauthn_session, parsedResponse)
+	if err != nil {
+		return false, err
+	}
+
+	r.DB.Delete(&auth_session)
+	log.Println(cred)
+	return true, nil
 }
 
 // RedeemToken is the resolver for the redeemToken field.
@@ -58,7 +91,7 @@ func (r *queryResolver) RedeemToken(ctx context.Context) (string, error) {
 }
 
 // Me is the resolver for the me field.
-func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
+func (r *queryResolver) Me(ctx context.Context) (*dbmodel.User, error) {
 	session := middleware.SessionFromContext(ctx)
 	if session == nil {
 		return nil, fmt.Errorf("session is missing")
@@ -68,7 +101,7 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 		return nil, nil
 	}
 
-	return &model.User{PasskeyID: base64.StdEncoding.EncodeToString([]byte(session.User.PasskeyID))}, nil
+	return session.User, nil
 }
 
 // Mutation returns MutationResolver implementation.

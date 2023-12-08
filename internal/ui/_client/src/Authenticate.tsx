@@ -2,21 +2,17 @@ import React, { useState } from "react";
 import { Alert, Button, Card, Form } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { gql, useMutation } from "@apollo/client";
+import { startRegistration } from '@simplewebauthn/browser';
 
 const CREATE_USER_GQL = gql`
-mutation {
-  createUser {
-    challenge
-    rp {
-      name
-      id
-    }
-    pubKeyCredParams {
-      type
-      alg
-    }
-    userID
-  }
+mutation createUser($name: String!) {
+  createUser(name: $name)
+}
+`
+
+const ADD_PASSKEY_QGL = gql`
+mutation addPasskey($body: CredentialCreationResponse!) {
+  addPasskey(body: $body)
 }
 `
 
@@ -30,10 +26,19 @@ function AuthenticateCard() {
     const hasWebAuthN = !!window.PublicKeyCredential;
     const [validated, setValidated] = useState(false);
     const [userName, setUserName] = useState<string>("");
+    const [errorMsg, setErrorMsg] = useState<string>("");
 
-    const [createUser, { loading, error }] = useMutation(CREATE_USER_GQL);
-    if (loading) return <p>Loading...</p>;
-    if (error) return <p>Error : {error.message}</p>;
+    if (!hasWebAuthN) {
+        setErrorMsg(t('This browser does not support WebAuthN.'))
+    }
+
+    const [createUser, { loading: loadingCreateUser, error: errorCreateUser }] = useMutation(CREATE_USER_GQL);
+    if (loadingCreateUser) return <p>Loading...</p>;
+    if (errorCreateUser) return <p>Error : {errorCreateUser.message}</p>;
+
+    const [addPasskey, { loading: loadingAddPasskey, error: errorAddPasskey }] = useMutation(ADD_PASSKEY_QGL);
+    if (loadingAddPasskey) return <p>Loading...</p>;
+    if (errorAddPasskey) setErrorMsg(errorAddPasskey.graphQLErrors.map(({ message }) => message).join(', '));
 
     const handleSubmit = (event: React.SyntheticEvent) => {
         event.preventDefault();
@@ -42,49 +47,58 @@ function AuthenticateCard() {
         setValidated(true);
     };
 
-    const handleRegistration = (event: React.SyntheticEvent) => {
+    const handleRegistration = async (event: React.SyntheticEvent) => {
         event.preventDefault();
         event.stopPropagation();
         setValidated(true);
 
         if (!userName) return;
 
-        createUser()
-            .then(result => {
-                const data = result.data.createUser;
-                const createCredentialOptions = {
-                    challenge: b64ToUArray(data.challenge),
-                    rp: {
-                        name: data.rp.name,
-                        id: data.rp.id,
-                    },
-                    pubKeyCredParams: data.pubKeyCredParams.map((param: { alg: COSEAlgorithmIdentifier, type: PublicKeyCredentialType }) => {
-                        return { alg: param.alg, type: param.type }
-                    }),
-                    user: {
-                        id: b64ToUArray(data.userID),
-                        name: userName,
-                        displayName: ''
-                    }
-                } as PublicKeyCredentialCreationOptions;
+        const result = await createUser({
+            variables: {
+                name: userName,
+            },
+        });
 
-                return navigator.credentials.create({ publicKey: createCredentialOptions });
-            })
-            .then(newCredentialInfo => console.log(newCredentialInfo))
-            .catch(err => console.error(err));
+        let attResp;
+        try {
+            attResp = await startRegistration(result.data.createUser.publicKey);
+        } catch (error) {
+            setErrorMsg(error as string);
+            throw error;
+        }
+
+        console.log("attResp", attResp)
+
+        try {
+
+            const verificationResp = await addPasskey({
+                variables: {
+                    body: JSON.stringify(attResp),
+                },
+            });
+
+            console.log(verificationResp);
+        } catch (error) {
+            setErrorMsg(error as string);
+            throw error;
+        }
+
     };
+
+
 
     return (
         <Card>
             <Card.Body>
-                {hasWebAuthN ? '' : <Alert variant="danger">{t('This browser does not support WebAuthN.')}</Alert>}
+                {!errorMsg ? '' : <Alert variant="danger">{errorMsg}</Alert>}
                 <Form noValidate validated={validated} onSubmit={handleSubmit}>
 
                     <Card.Text>
                         <Form.Control required type="text" id="inputUserName" placeholder={t('user name')} value={userName} onChange={e => setUserName(e.target.value)} />
                     </Card.Text>
-                    <Button onClick={handleRegistration} disabled={!hasWebAuthN || loading}>{t('Register')}</Button>{' '}
-                    <Button type="submit" disabled={!hasWebAuthN || loading}>{t('Login')}</Button>
+                    <Button onClick={handleRegistration} disabled={!hasWebAuthN || loadingCreateUser || loadingAddPasskey}>{t('Register')}</Button>{' '}
+                    <Button type="submit" disabled={!hasWebAuthN || loadingCreateUser || loadingAddPasskey}>{t('Login')}</Button>
                 </Form>
             </Card.Body>
         </Card>

@@ -1,6 +1,9 @@
 package graph
 
-import "gorm.io/gorm"
+import (
+	"github.com/go-webauthn/webauthn/webauthn"
+	"gorm.io/gorm"
+)
 
 //go:generate go run github.com/99designs/gqlgen generate
 
@@ -9,5 +12,6 @@ import "gorm.io/gorm"
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	DB *gorm.DB
+	DB       *gorm.DB
+	WebAuthn *webauthn.WebAuthn
 }

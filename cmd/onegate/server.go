@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/seb-schulz/onegate/graph"
 	"github.com/seb-schulz/onegate/internal/jwt"
 	"github.com/seb-schulz/onegate/internal/middleware"
@@ -43,7 +44,7 @@ func main() {
 		panic("failed to connect database")
 	}
 
-	if err := db.AutoMigrate(model.User{}, model.Passkeys{}, model.Session{}); err != nil {
+	if err := db.AutoMigrate(model.User{}, model.Passkeys{}, model.Session{}, model.AuthSession{}); err != nil {
 		log.Fatalln("Migration failed: ", err)
 	}
 
@@ -66,8 +67,16 @@ func main() {
 	})))
 
 	http.Handle("/static/", ui.StaticFiles())
+	webAuthn, err := webauthn.New(&webauthn.Config{
+		RPDisplayName: viper.GetString("rp.name"),
+		RPID:          viper.GetString("rp.id"),
+		RPOrigins:     []string{viper.GetString("rp.id"), "http://localhost:9000"}, // FIXME: Provide origins as config variable
+	})
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db}}))
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db, WebAuthn: webAuthn}}))
 	http.Handle("/query", sessionMiddleware(srv))
 	// http.Handle("/query", srv)
 
