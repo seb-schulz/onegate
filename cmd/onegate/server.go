@@ -19,6 +19,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// FIXME: Provide origins as config variable https://sagikazarmark.hu/blog/decoding-custom-formats-with-viper/
 var defaultConfig = []byte(`
 jwt:
   header: x-jwt-token
@@ -27,7 +28,8 @@ jwt:
   valid_methods: ["HS256", "HS384", "HS512"]
 rp:
   name: "NOT_CONFIGURED_YET"
-  id: "NOT_CONFIGURED_YET"
+  id: "localhost"
+  origins: ["localhost", "http://localhost:9000"]
 db:
   dsn: "NOT_CONFIGURED_YET"
 httpPort: 9000
@@ -67,10 +69,11 @@ func main() {
 	})))
 
 	http.Handle("/static/", ui.StaticFiles())
+
 	webAuthn, err := webauthn.New(&webauthn.Config{
 		RPDisplayName: viper.GetString("rp.name"),
 		RPID:          viper.GetString("rp.id"),
-		RPOrigins:     []string{viper.GetString("rp.id"), "http://localhost:9000"}, // FIXME: Provide origins as config variable
+		RPOrigins:     viper.GetStringSlice("rp.origins"),
 	})
 	if err != nil {
 		fmt.Println(err)
