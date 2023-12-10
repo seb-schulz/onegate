@@ -32,9 +32,9 @@ func init() {
 		AbsWorkingDir:     path.Join(path.Dir(fileName()), "_client"),
 		Outdir:            path.Join(outdir(), "static"),
 		Write:             true,
-		MinifyWhitespace:  true,
-		MinifyIdentifiers: true,
-		MinifySyntax:      true,
+		MinifyWhitespace:  false,
+		MinifyIdentifiers: false,
+		MinifySyntax:      false,
 		Sourcemap:         api.SourceMapInline,
 	})
 	if err != nil {

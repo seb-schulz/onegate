@@ -11,12 +11,10 @@ const ME_GQL = gql`query me {
     }
   }`
 
-type NavbarTextProps = {
-    me: { displayName: string, name: string } | null
-}
 
-function NavbarText(props: NavbarTextProps) {
-    const me = props.me
+function NavbarText({ me }: {
+    me: { displayName: string, name: string } | null
+}) {
     if (!me) return '';
 
     return <Navbar.Text>Name: {me.displayName ? me.displayName : me.name}</Navbar.Text>
@@ -25,7 +23,7 @@ function NavbarText(props: NavbarTextProps) {
 
 function AppContainer() {
     const { t } = useTranslation();
-    const { loading, error, data } = useQuery(ME_GQL);
+    const { loading, error, data, refetch } = useQuery(ME_GQL);
     if (loading) return <p>Loading...</p>;
     if (error) return <p>Error : {error.message}</p>;
 
@@ -43,7 +41,10 @@ function AppContainer() {
             </Navbar>
             <Container>
                 <Row>
-                    <Col md={6} xs={true}>{loggedOut ? <AuthenticateCard /> : 'You are logged in'}</Col>
+                    <Col md={6} xs={true}>{loggedOut ? <AuthenticateCard loginSucceeded={() => {
+                        console.log("Login succesfull")
+                        refetch()
+                    }} /> : 'You are logged in'}</Col>
                 </Row>
             </Container>
         </Stack>

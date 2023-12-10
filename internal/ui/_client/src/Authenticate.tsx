@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Alert, Button, Card, Form } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { gql, useMutation } from "@apollo/client";
@@ -16,49 +16,49 @@ mutation addPasskey($body: CredentialCreationResponse!) {
 }
 `
 
-function b64ToUArray(x: string): Uint8Array {
-    return Uint8Array.from(atob(x), c =>
-        c.charCodeAt(0))
-};
-
-function AuthenticateCard() {
+function AuthenticateCard({ loginSucceeded }: {
+    loginSucceeded: () => void
+}) {
     const { t } = useTranslation();
-    const hasWebAuthN = !!window.PublicKeyCredential;
     const [validated, setValidated] = useState(false);
-    const [userName, setUserName] = useState<string>("");
     const [errorMsg, setErrorMsg] = useState<string>("");
-
-    if (!hasWebAuthN) {
-        setErrorMsg(t('This browser does not support WebAuthN.'))
-    }
-
+    const userNameRef = useRef<HTMLInputElement | null>(null);
     const [createUser, { loading: loadingCreateUser, error: errorCreateUser }] = useMutation(CREATE_USER_GQL);
-    if (loadingCreateUser) return <p>Loading...</p>;
-    if (errorCreateUser) return <p>Error : {errorCreateUser.message}</p>;
-
     const [addPasskey, { loading: loadingAddPasskey, error: errorAddPasskey }] = useMutation(ADD_PASSKEY_QGL);
+
+    const hasWebAuthN = !!window.PublicKeyCredential;
+    const errorMsgList = [];
+
+    if (!hasWebAuthN) errorMsgList.push(t('This browser does not support WebAuthN.'));
+    if (!!errorMsg) errorMsgList.push(errorMsg);
+    if (loadingCreateUser) return <p>Loading...</p>;
+    if (errorCreateUser) errorMsgList.push(errorCreateUser.message);
     if (loadingAddPasskey) return <p>Loading...</p>;
-    if (errorAddPasskey) setErrorMsg(errorAddPasskey.graphQLErrors.map(({ message }) => message).join(', '));
+    if (errorAddPasskey) errorMsgList.push(errorAddPasskey.message);
 
     const handleSubmit = (event: React.SyntheticEvent) => {
         event.preventDefault();
         event.stopPropagation();
-        console.log("login", userName)
+        // console.log("login", userName)
         setValidated(true);
     };
 
-    const handleRegistration = async (event: React.SyntheticEvent) => {
-        event.preventDefault();
-        event.stopPropagation();
+    const handleRegistration = async (e: React.SyntheticEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         setValidated(true);
 
-        if (!userName) return;
+        if (userNameRef.current === null) return;
+        if (!userNameRef.current.value) return;
+
+        const userName = userNameRef.current.value;
 
         const result = await createUser({
             variables: {
                 name: userName,
             },
         });
+        setTimeout(loginSucceeded, 0);
 
         let attResp;
         try {
@@ -68,17 +68,16 @@ function AuthenticateCard() {
             throw error;
         }
 
-        console.log("attResp", attResp)
-
         try {
-
-            const verificationResp = await addPasskey({
+            const addPasskeyData = await addPasskey({
                 variables: {
                     body: JSON.stringify(attResp),
                 },
             });
 
-            console.log(verificationResp);
+            if (addPasskeyData.data.addPasskey) {
+                // TODO: Add alert on top
+            }
         } catch (error) {
             setErrorMsg(error as string);
             throw error;
@@ -86,16 +85,14 @@ function AuthenticateCard() {
 
     };
 
-
-
     return (
         <Card>
             <Card.Body>
-                {!errorMsg ? '' : <Alert variant="danger">{errorMsg}</Alert>}
+                {errorMsgList.length > 0 ? <Alert variant="danger">{errorMsgList.join(',`')}</Alert> : ''}
                 <Form noValidate validated={validated} onSubmit={handleSubmit}>
 
                     <Card.Text>
-                        <Form.Control required type="text" id="inputUserName" placeholder={t('user name')} value={userName} onChange={e => setUserName(e.target.value)} />
+                        <Form.Control required type="text" id="inputUserName" placeholder={t('user name')} ref={userNameRef} />
                     </Card.Text>
                     <Button onClick={handleRegistration} disabled={!hasWebAuthN || loadingCreateUser || loadingAddPasskey}>{t('Register')}</Button>{' '}
                     <Button type="submit" disabled={!hasWebAuthN || loadingCreateUser || loadingAddPasskey}>{t('Login')}</Button>
