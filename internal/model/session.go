@@ -3,14 +3,13 @@ package model
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"hash"
 	"math/rand"
 	"strings"
 
-	"github.com/spf13/viper"
+	"github.com/seb-schulz/onegate/internal/config"
 	"gorm.io/gorm"
 )
 
@@ -30,12 +29,7 @@ func nonce() []byte {
 }
 
 func newHMAC() hash.Hash {
-	key, err := base64.StdEncoding.DecodeString(viper.GetString("sessionKey"))
-	if err != nil {
-		panic("Configure sessionKey accordingly!")
-	}
-
-	return hmac.New(sha256.New, key)
+	return hmac.New(sha256.New, []byte(config.Default.SessionKey))
 }
 
 func generateToken(id uint, nonce []byte) string {

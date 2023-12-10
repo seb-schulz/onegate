@@ -4,26 +4,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
+	"github.com/seb-schulz/onegate/internal/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-var db_dsn = os.Getenv("DB_DSN")
-
-func init() {
-	if db_dsn == "" {
-		db_dsn = "onegate:.test.@tcp(db:3306)/onegate?charset=utf8&parseTime=True"
-	}
-	// fmt.Println(os.Environ())
-	fmt.Println(db_dsn)
-	// viper.ReadConfig(bytes.NewBuffer([]byte("sessionKey: LnRlc3Qu")))
-}
-
 func openDb() *gorm.DB {
-	db, err := gorm.Open(mysql.Open(db_dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(config.Default.DB.Dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}

@@ -1,47 +1,24 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/seb-schulz/onegate/graph"
+	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/jwt"
 	"github.com/seb-schulz/onegate/internal/middleware"
 	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/ui"
-	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-// FIXME: Provide origins as config variable https://sagikazarmark.hu/blog/decoding-custom-formats-with-viper/
-var defaultConfig = []byte(`
-jwt:
-  header: x-jwt-token
-  secret: "NOT_CONFIGURED_YET"
-  expires_in: 1h
-  valid_methods: ["HS256", "HS384", "HS512"]
-rp:
-  name: "NOT_CONFIGURED_YET"
-  id: "localhost"
-  origins: ["localhost", "http://localhost:9000"]
-db:
-  dsn: "NOT_CONFIGURED_YET"
-httpPort: 9000
-`)
-
 func main() {
-	viper.SetConfigType("yaml")
-	viper.ReadConfig(bytes.NewBuffer(defaultConfig))
-	viper.AutomaticEnv()
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	db, err := gorm.Open(mysql.Open(viper.GetString("db.dsn")), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(config.Default.DB.Dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -65,15 +42,15 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		return map[string]any{"jwtInitToken": token, "jwtHeader": viper.GetString("jwt.header")}
+		return map[string]any{"jwtInitToken": token, "jwtHeader": config.Default.JWT.Header}
 	})))
 
 	http.Handle("/static/", ui.StaticFiles())
 
 	webAuthn, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: viper.GetString("rp.name"),
-		RPID:          viper.GetString("rp.id"),
-		RPOrigins:     viper.GetStringSlice("rp.origins"),
+		RPDisplayName: config.Default.RelyingParty.Name,
+		RPID:          config.Default.RelyingParty.ID,
+		RPOrigins:     config.Default.RelyingParty.Origins,
 	})
 	if err != nil {
 		fmt.Println(err)
@@ -85,7 +62,7 @@ func main() {
 
 	addGraphQLPlayground()
 
-	port := viper.GetString("httpPort")
+	port := config.Default.HttpPort
 	fmt.Println("Server listening on port ", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalln(err)

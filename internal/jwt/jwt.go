@@ -2,7 +2,6 @@ package jwt
 
 import (
 	"crypto/subtle"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -11,7 +10,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/spf13/viper"
+	"github.com/seb-schulz/onegate/internal/config"
 )
 
 type claims struct {
@@ -42,12 +41,12 @@ func (m claims) Validate() error {
 }
 
 func getSecret() ([]byte, error) {
-	return base64.StdEncoding.DecodeString(viper.GetString("jwt.secret"))
+	return []byte(config.Default.JWT.Secret), nil
 }
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tokenString := r.Header.Get(viper.GetString("jwt.header"))
+		tokenString := r.Header.Get(config.Default.JWT.Header)
 		if tokenString == "" {
 			w.WriteHeader(http.StatusForbidden)
 			w.Write([]byte("Access forbidden"))
@@ -56,7 +55,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		token, err := jwt.ParseWithClaims(tokenString, &claims{}, func(token *jwt.Token) (interface{}, error) {
 			return getSecret()
-		}, jwt.WithValidMethods(viper.GetStringSlice("jwt.valid_methods")), jwt.WithExpirationRequired(), jwt.WithLeeway(30*time.Second))
+		}, jwt.WithValidMethods(config.Default.JWT.ValidMethods), jwt.WithExpirationRequired(), jwt.WithLeeway(30*time.Second))
 
 		if err != nil {
 			log.Println(err)
@@ -79,7 +78,7 @@ func GenerateJwtToken(user UserJwtConverter) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwt.RegisteredClaims{
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(viper.GetDuration("jwt.expires_in"))),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(config.Default.JWT.ExpiresIn)),
 		ID:        string(id_runes),
 		Subject:   user.Subject(),
 	})
