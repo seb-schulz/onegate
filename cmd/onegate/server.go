@@ -9,7 +9,6 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/seb-schulz/onegate/graph"
 	"github.com/seb-schulz/onegate/internal/config"
-	"github.com/seb-schulz/onegate/internal/jwt"
 	"github.com/seb-schulz/onegate/internal/middleware"
 	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/ui"
@@ -38,11 +37,7 @@ func main() {
 	sessionMiddleware := middleware.SessionMiddleware(db)
 
 	http.Handle("/", sessionMiddleware(ui.Template("index.html.tmpl", func() any {
-		token, err := jwt.GenerateJwtToken(jwt.AnonymousUser)
-		if err != nil {
-			panic(err)
-		}
-		return map[string]any{"jwtInitToken": token, "jwtHeader": config.Default.JWT.Header}
+		return map[string]any{}
 	})))
 
 	http.Handle("/static/", ui.StaticFiles())

@@ -28,7 +28,6 @@ type User {
 }
 
 type Query {
-  redeemToken: String!
   me: User
 }
 

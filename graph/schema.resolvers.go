@@ -13,7 +13,6 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/seb-schulz/onegate/internal/jwt"
 	"github.com/seb-schulz/onegate/internal/middleware"
 	dbmodel "github.com/seb-schulz/onegate/internal/model"
 	"gorm.io/gorm"
@@ -82,12 +81,6 @@ func (r *mutationResolver) AddPasskey(ctx context.Context, body string) (bool, e
 	r.DB.Delete(&auth_session)
 	log.Println(cred)
 	return true, nil
-}
-
-// RedeemToken is the resolver for the redeemToken field.
-func (r *queryResolver) RedeemToken(ctx context.Context) (string, error) {
-	// TODO: Check for user type via context
-	return jwt.GenerateJwtToken(jwt.AnonymousUser)
 }
 
 // Me is the resolver for the me field.
