@@ -28,8 +28,8 @@ func main() {
 	}
 
 	// Manual migration was added because tags generated multiple indexes
-	if !db.Migrator().HasIndex(&model.User{}, "idx_user_passkey_id_uniq") {
-		db.Exec("CREATE UNIQUE INDEX idx_user_passkey_id_uniq ON users(passkey_id)")
+	if !db.Migrator().HasIndex(&model.User{}, "idx_user_authn_id_uniq") {
+		db.Exec("CREATE UNIQUE INDEX idx_user_authn_id_uniq ON users(authn_id)")
 	}
 
 	http.Handle("/favicon.ico", ui.PublicFile())
