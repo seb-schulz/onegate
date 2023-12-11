@@ -23,6 +23,7 @@ RelyingParty:
   origins: []
 db:
   dsn: "NOT_CONFIGURED_YET"
+  debug: false
 httpPort: 9000
 SessionKey: "NOT_CONFIGURED_YET"
 `)
@@ -40,7 +41,8 @@ type Config struct {
 		ValidMethods []string
 	}
 	DB struct {
-		Dsn string
+		Dsn   string
+		Debug bool
 	}
 	HttpPort   string
 	SessionKey string
