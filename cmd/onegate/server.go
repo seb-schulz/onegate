@@ -22,7 +22,7 @@ func main() {
 		panic("failed to connect database")
 	}
 
-	if err := db.AutoMigrate(model.User{}, model.Passkeys{}, model.Session{}, model.AuthSession{}); err != nil {
+	if err := db.AutoMigrate(model.User{}, model.Credential{}, model.Session{}, model.AuthSession{}); err != nil {
 		log.Fatalln("Migration failed: ", err)
 	}
 

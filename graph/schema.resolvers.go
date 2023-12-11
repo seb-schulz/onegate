@@ -7,7 +7,6 @@ package graph
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/go-webauthn/webauthn/protocol"
@@ -44,8 +43,6 @@ func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protoc
 	}
 	r.DB.Create(&dbmodel.AuthSession{SessionID: session.ID, Data: *webauthn_session})
 
-	log.Println("UserID", user.WebAuthnID(), webauthn_session.UserID)
-
 	return options, nil
 }
 
@@ -71,15 +68,19 @@ func (r *mutationResolver) AddPasskey(ctx context.Context, body string) (bool, e
 	}
 	webauthn_session := auth_session.Data
 
-	log.Println("Origin", parsedResponse.Response.CollectedClientData, r.WebAuthn.Config)
-
 	cred, err := r.WebAuthn.CreateCredential(session.User, webauthn_session, parsedResponse)
 	if err != nil {
 		return false, err
 	}
 
-	r.DB.Delete(&auth_session)
-	log.Println(cred)
+	if err := r.DB.Transaction(func(tx *gorm.DB) error {
+		tx.Create(&dbmodel.Credential{UserID: *session.UserID, Data: *cred})
+		tx.Delete(&auth_session)
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+
 	return true, nil
 }
 

@@ -17,6 +17,7 @@ type User struct {
 	AuthnID     []byte `gorm:"type:BLOB(16);default:RANDOM_BYTES(16);not null"`
 	Name        string `gorm:"type:VARCHAR(255);not null"`
 	DisplayName string `gorm:"type:VARCHAR(255);not null"`
+	Credentials []Credential
 }
 
 func (u User) WebAuthnID() []byte {
@@ -32,7 +33,11 @@ func (u User) WebAuthnDisplayName() string {
 }
 
 func (u User) WebAuthnCredentials() []webauthn.Credential {
-	return []webauthn.Credential{}
+	r := make([]webauthn.Credential, len(u.Credentials))
+	for i, v := range u.Credentials {
+		r[i] = v.Data
+	}
+	return r
 }
 
 func (u User) WebAuthnIcon() string {
