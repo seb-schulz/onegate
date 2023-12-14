@@ -57,8 +57,10 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddPasskey func(childComplexity int, body string) int
-		CreateUser func(childComplexity int, name string) int
+		AddPasskey    func(childComplexity int, body string) int
+		BeginLogin    func(childComplexity int) int
+		CreateUser    func(childComplexity int, name string) int
+		ValidateLogin func(childComplexity int, body string) int
 	}
 
 	PubKeyCredParam struct {
@@ -84,6 +86,8 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	CreateUser(ctx context.Context, name string) (*protocol.CredentialCreation, error)
 	AddPasskey(ctx context.Context, body string) (bool, error)
+	BeginLogin(ctx context.Context) (*protocol.CredentialAssertion, error)
+	ValidateLogin(ctx context.Context, body string) (bool, error)
 }
 type QueryResolver interface {
 	Me(ctx context.Context) (*model.User, error)
@@ -148,6 +152,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddPasskey(childComplexity, args["body"].(string)), true
 
+	case "Mutation.beginLogin":
+		if e.complexity.Mutation.BeginLogin == nil {
+			break
+		}
+
+		return e.complexity.Mutation.BeginLogin(childComplexity), true
+
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
 			break
@@ -159,6 +170,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateUser(childComplexity, args["name"].(string)), true
+
+	case "Mutation.validateLogin":
+		if e.complexity.Mutation.ValidateLogin == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_validateLogin_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ValidateLogin(childComplexity, args["body"].(string)), true
 
 	case "PubKeyCredParam.alg":
 		if e.complexity.PubKeyCredParam.Alg == nil {
@@ -359,6 +382,21 @@ func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, 
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_validateLogin_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["body"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("body"))
+		arg0, err = ec.unmarshalNCredentialRequestResponse2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["body"] = arg0
 	return args, nil
 }
 
@@ -707,6 +745,105 @@ func (ec *executionContext) fieldContext_Mutation_addPasskey(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_addPasskey_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_beginLogin(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_beginLogin(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().BeginLogin(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*protocol.CredentialAssertion)
+	fc.Result = res
+	return ec.marshalNCredentialAssertion2ᚖgithubᚗcomᚋgoᚑwebauthnᚋwebauthnᚋprotocolᚐCredentialAssertion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_beginLogin(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type CredentialAssertion does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_validateLogin(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_validateLogin(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ValidateLogin(rctx, fc.Args["body"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_validateLogin(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_validateLogin_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3021,6 +3158,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "beginLogin":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_beginLogin(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "validateLogin":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_validateLogin(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3586,6 +3737,42 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNCredentialAssertion2githubᚗcomᚋgoᚑwebauthnᚋwebauthnᚋprotocolᚐCredentialAssertion(ctx context.Context, v interface{}) (protocol.CredentialAssertion, error) {
+	res, err := model.UnmarshalCredentialAssertion(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCredentialAssertion2githubᚗcomᚋgoᚑwebauthnᚋwebauthnᚋprotocolᚐCredentialAssertion(ctx context.Context, sel ast.SelectionSet, v protocol.CredentialAssertion) graphql.Marshaler {
+	res := model.MarshalCredentialAssertion(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNCredentialAssertion2ᚖgithubᚗcomᚋgoᚑwebauthnᚋwebauthnᚋprotocolᚐCredentialAssertion(ctx context.Context, v interface{}) (*protocol.CredentialAssertion, error) {
+	res, err := model.UnmarshalCredentialAssertion(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCredentialAssertion2ᚖgithubᚗcomᚋgoᚑwebauthnᚋwebauthnᚋprotocolᚐCredentialAssertion(ctx context.Context, sel ast.SelectionSet, v *protocol.CredentialAssertion) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	res := model.MarshalCredentialAssertion(*v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNCredentialCreation2githubᚗcomᚋgoᚑwebauthnᚋwebauthnᚋprotocolᚐCredentialCreation(ctx context.Context, v interface{}) (protocol.CredentialCreation, error) {
 	res, err := model.UnmarshalCredentialCreation(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3628,6 +3815,21 @@ func (ec *executionContext) unmarshalNCredentialCreationResponse2string(ctx cont
 }
 
 func (ec *executionContext) marshalNCredentialCreationResponse2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalString(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNCredentialRequestResponse2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalString(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCredentialRequestResponse2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {

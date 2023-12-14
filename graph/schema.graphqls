@@ -4,6 +4,8 @@
 
 scalar CredentialCreation
 scalar CredentialCreationResponse
+scalar CredentialRequestResponse
+scalar CredentialAssertion
 
 type PubKeyCredParam {
   type: String!
@@ -34,4 +36,6 @@ type Query {
 type Mutation {
  createUser(name: String!): CredentialCreation!
  addPasskey(body: CredentialCreationResponse!): Boolean!
+ beginLogin: CredentialAssertion!
+ validateLogin(body: CredentialRequestResponse!): Boolean!
 }
