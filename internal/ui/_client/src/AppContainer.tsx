@@ -1,5 +1,5 @@
 import { Alert, Col, Container, Navbar, Row, Stack, Toast, ToastContainer } from "react-bootstrap";
-import AuthenticateCard from "./Authenticate";
+import SignupCard from "./Signup";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { gql, useQuery } from "@apollo/client";
@@ -56,7 +56,7 @@ function AppContainer() {
             <Container>
                 {!window.PublicKeyCredential ? <Row><Alert variant="danger">{t('This browser does not support WebAuthN.')}</Alert></Row> : ''}
                 <Row>
-                    <Col md={6} xs={true}>{loggedOut ? <AuthenticateCard
+                    <Col md={6} xs={true}>{loggedOut ? <SignupCard
                         onError={setErrMsg}
                         onUserCreated={() => {
                             console.log("Login succesfull")

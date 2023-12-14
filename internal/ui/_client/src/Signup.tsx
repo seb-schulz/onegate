@@ -16,7 +16,7 @@ mutation addPasskey($body: CredentialCreationResponse!) {
 }
 `
 
-function AuthenticateCard({ onUserCreated, onError }: {
+function SignupCard({ onUserCreated, onError }: {
     onUserCreated: () => void
     onError: (errMsg: string) => void
 }) {
@@ -28,7 +28,7 @@ function AuthenticateCard({ onUserCreated, onError }: {
 
     if (loadingCreateUser || loadingAddPasskey) return <p>Loading...</p>;
 
-    const handleRegistration = async (e: React.SyntheticEvent) => {
+    const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         e.stopPropagation();
         setValidated(true);
@@ -71,9 +71,10 @@ function AuthenticateCard({ onUserCreated, onError }: {
     return (
         <Card>
             <Card.Body>
-                <Form noValidate validated={validated} onSubmit={handleRegistration}>
+                <Form noValidate validated={validated} onSubmit={handleSubmit}>
                     <Card.Text>
-                        <Form.Control required type="text" id="inputUserName" placeholder={t('user name')} ref={userNameRef} autoComplete="username webauthn" />
+                        <Form.Label htmlFor="inputUserName">{t('Username')}</Form.Label>
+                        <Form.Control required type="text" id="inputUserName" ref={userNameRef} autoComplete="username webauthn" />
                     </Card.Text>
                     <Button type="submit" disabled={!window.PublicKeyCredential || loadingCreateUser || loadingAddPasskey}>{t('Register')}</Button>{' '}
                 </Form>
@@ -82,4 +83,4 @@ function AuthenticateCard({ onUserCreated, onError }: {
     );
 }
 
-export default AuthenticateCard;
+export default SignupCard;
