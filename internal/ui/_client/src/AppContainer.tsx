@@ -1,4 +1,4 @@
-import { Col, Container, Navbar, Row, Stack, Toast, ToastContainer } from "react-bootstrap";
+import { Alert, Col, Container, Navbar, Row, Stack, Toast, ToastContainer } from "react-bootstrap";
 import AuthenticateCard from "./Authenticate";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
@@ -40,27 +40,28 @@ function AppContainer() {
     if (error) return <p>Error : {error.message}</p>;
 
     const loggedOut = !data.me;
-    console.log(data)
 
     return (
         <Stack gap={2}>
-
             <Navbar expand="lg" className="bg-body-tertiary">
                 <Container>
                     <Navbar.Brand>OneGate</Navbar.Brand>
-                    <NavbarLogin me={data.me} loginError={(e) => {
+                    <NavbarLogin me={data.me} onError={(e) => {
                         console.log(e)
                         setErrMsg(e)
-                    }} loginSucceeded={refetch} />
+                    }} onSuccess={refetch} />
                 </Container>
             </Navbar>
             <ErrorAlert setChildren={setErrMsg}>{errMsg}</ErrorAlert>
             <Container>
+                {!window.PublicKeyCredential ? <Row><Alert variant="danger">{t('This browser does not support WebAuthN.')}</Alert></Row> : ''}
                 <Row>
-                    <Col md={6} xs={true}>{loggedOut ? <AuthenticateCard loginSucceeded={() => {
-                        console.log("Login succesfull")
-                        refetch()
-                    }} /> : 'You are logged in'}</Col>
+                    <Col md={6} xs={true}>{loggedOut ? <AuthenticateCard
+                        onError={setErrMsg}
+                        onUserCreated={() => {
+                            console.log("Login succesfull")
+                            refetch()
+                        }} /> : 'You are logged in'}</Col>
                 </Row>
             </Container>
         </Stack>

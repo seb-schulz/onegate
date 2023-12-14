@@ -1,4 +1,4 @@
-import { Button, Navbar, Toast, ToastContainer } from "react-bootstrap";
+import { Button, Navbar } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { startAuthentication } from '@simplewebauthn/browser';
 import { ApolloError, gql, useMutation } from "@apollo/client";
@@ -15,10 +15,10 @@ mutation validateLogin($body: CredentialRequestResponse!) {
 }
 `
 
-function NavbarLogin({ me, loginError, loginSucceeded }: {
+function NavbarLogin({ me, onError, onSuccess }: {
     me: { displayName: string, name: string } | null
-    loginSucceeded: () => void
-    loginError: (errMsg: string) => void
+    onSuccess: () => void
+    onError: (errMsg: string) => void
 }) {
     const { t } = useTranslation();
     const [beginLogin, { loading: loadingBeginLogin, error: errorBeginLogin }] = useMutation(BEGIN_LOGIN_QGL);
@@ -39,10 +39,10 @@ function NavbarLogin({ me, loginError, loginSucceeded }: {
             });
 
             if (verificationResp.data.validateLogin) {
-                setTimeout(loginSucceeded, 0);
+                setTimeout(onSuccess, 0);
             }
         } catch (error) {
-            loginError((error as ApolloError).message);
+            onError((error as ApolloError).message);
         }
     };
 
