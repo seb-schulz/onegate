@@ -54,7 +54,6 @@ function AuthenticateCard({ loginSucceeded }: {
     const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        // console.log("login", userName)
         const result = await beginLogin();
 
         try {
