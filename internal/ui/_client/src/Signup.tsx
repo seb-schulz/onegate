@@ -16,9 +16,10 @@ mutation addPasskey($body: CredentialCreationResponse!) {
 }
 `
 
-function SignupCard({ onUserCreated, onError }: {
+function SignupCard({ onUserCreated, onError, onPasskeyAdded }: {
     onUserCreated: () => void
     onError: (errMsg: string) => void
+    onPasskeyAdded: () => void
 }) {
     const { t } = useTranslation();
     const [validated, setValidated] = useState(false);
@@ -60,7 +61,7 @@ function SignupCard({ onUserCreated, onError }: {
             });
 
             if (addPasskeyData.data.addPasskey) {
-                // TODO: Add alert on top
+                setTimeout(onPasskeyAdded, 0);
             }
         } catch (error) {
             onError((error as ApolloError).message);
