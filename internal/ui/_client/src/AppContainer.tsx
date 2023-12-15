@@ -1,17 +1,24 @@
-import { Alert, Col, Container, Navbar, Row, Stack, Toast, ToastContainer } from "react-bootstrap";
+import { Alert, Button, ButtonGroup, Col, Container, Form, InputGroup, Navbar, Row, Stack, Table, Toast, ToastContainer } from "react-bootstrap";
 import { Variant } from "react-bootstrap/types";
 import SignupCard from "./Signup";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { gql, useQuery } from "@apollo/client";
 import NavbarLogin from "./NavbarLogin";
+import Moment from "react-moment";
 
-const ME_GQL = gql`query me {
-    me {
-      displayName
-      name
+const ME_GQL = gql`
+query me {
+  me {
+    displayName
+    name
+    credentials {
+      id
+      createdAt
+      updatedAt
     }
-  }`
+  }
+}`
 
 
 function InfoToast({ bg, setChildren, children }: {
@@ -32,6 +39,36 @@ function InfoToast({ bg, setChildren, children }: {
         </Toast></ToastContainer >
 }
 
+function Credentials({ credentials }) {
+    const { t } = useTranslation();
+
+    const tbody = credentials.map((cred, idx) => <tr key={cred.id}>
+        <td>{"Credential " + (idx + 1)}</td>
+        <td><Moment fromNow withTitle>{cred.createdAt}</Moment></td>
+        <td><Moment fromNow withTitle>{cred.updatedAt}</Moment></td>
+        <td><ButtonGroup size="sm"><Button disabled>{t("Edit")}</Button><Button disabled>{t("Remove")}</Button></ButtonGroup></td>
+    </tr>
+    );
+
+
+    return (
+        <>
+            <Table responsive>
+                <thead>
+                    <tr>
+                        <th>{t("Description")}</th>
+                        <th>{t("Created at")}</th>
+                        <th>{t("Updated at")}</th>
+                        <th>{t("Action")}</th>
+                    </tr>
+                </thead>
+                <tbody>{tbody}</tbody>
+            </Table>
+            <Button disabled>Add</Button>
+        </>
+    )
+}
+
 
 function AppContainer() {
     const { t } = useTranslation();
@@ -49,6 +86,21 @@ function AppContainer() {
         setInfoMsg(e)
     };
 
+    let row;
+    if (loggedOut) {
+        row = <Col md={6} xs={true}>
+            <SignupCard
+                onError={handleError}
+                onUserCreated={refetch} onPasskeyAdded={() => {
+                    setInfoType("success")
+                    setInfoMsg(t("Key creation succeeded"))
+                }} />
+        </Col>;
+    } else {
+        row = <Col><h1>{t("Credentials")}</h1><Credentials credentials={data.me.credentials} /></Col>;
+    }
+
+
     return (
         <Stack gap={2}>
             <Navbar expand="lg" className="bg-body-tertiary">
@@ -65,12 +117,7 @@ function AppContainer() {
             <Container>
                 {!window.PublicKeyCredential ? <Row><Alert variant="danger">{t('This browser does not support WebAuthN.')}</Alert></Row> : ''}
                 <Row>
-                    <Col md={6} xs={true}>{loggedOut ? <SignupCard
-                        onError={handleError}
-                        onUserCreated={refetch} onPasskeyAdded={() => {
-                            setInfoType("success")
-                            setInfoMsg(t("Key creation succeeded"))
-                        }} /> : 'You are logged in'}</Col>
+                    {row}
                 </Row>
             </Container>
         </Stack>

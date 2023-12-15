@@ -18,6 +18,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// ID is the resolver for the ID field.
+func (r *credentialResolver) ID(ctx context.Context, obj *dbmodel.Credential) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protocol.CredentialCreation, error) {
 	session := middleware.SessionFromContext(ctx)
@@ -171,9 +176,13 @@ func (r *queryResolver) Me(ctx context.Context) (*dbmodel.User, error) {
 	if session.UserID == nil {
 		return nil, nil // ignore error to dedect logged-out scenario
 	}
+	r.DB.Model(&session.User).Preload("Credentials").First(&session.User)
 
 	return session.User, nil
 }
+
+// Credential returns CredentialResolver implementation.
+func (r *Resolver) Credential() CredentialResolver { return &credentialResolver{r} }
 
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
@@ -181,5 +190,6 @@ func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+type credentialResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

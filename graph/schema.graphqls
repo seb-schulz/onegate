@@ -6,6 +6,7 @@ scalar CredentialCreation
 scalar CredentialCreationResponse
 scalar CredentialRequestResponse
 scalar CredentialAssertion
+scalar Time
 
 type PubKeyCredParam {
   type: String!
@@ -17,16 +18,16 @@ type RelyingParty {
   id: String!
 }
 
-type CreateCredentialOptions {
-  challenge: String!
-  rp: RelyingParty!
-  pubKeyCredParams: [PubKeyCredParam]!
-  userID: String!
+type Credential {
+  id: ID!
+  createdAt: Time!
+  updatedAt: Time!
 }
 
 type User {
   name: String!
   displayName: String!
+  credentials: [Credential]!
 }
 
 type Query {

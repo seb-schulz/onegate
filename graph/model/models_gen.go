@@ -2,13 +2,6 @@
 
 package model
 
-type CreateCredentialOptions struct {
-	Challenge        string             `json:"challenge"`
-	Rp               RelyingParty       `json:"rp"`
-	PubKeyCredParams []*PubKeyCredParam `json:"pubKeyCredParams"`
-	UserID           string             `json:"userID"`
-}
-
 type PubKeyCredParam struct {
 	Type string `json:"type"`
 	Alg  int    `json:"alg"`
