@@ -69,7 +69,6 @@ function Credentials({ credentials }) {
     )
 }
 
-
 function AppContainer() {
     const { t } = useTranslation();
     const { loading, error, data, refetch } = useQuery(ME_GQL);
