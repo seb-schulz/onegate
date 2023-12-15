@@ -6,6 +6,7 @@ import (
 )
 
 //go:generate go run github.com/99designs/gqlgen generate
+//go:generate /bin/bash -c "(cd $(pwd)/../internal/ui/_client/ && npm run compile)"
 
 // This file will not be regenerated automatically.
 //

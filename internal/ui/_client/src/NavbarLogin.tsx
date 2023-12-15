@@ -1,22 +1,25 @@
 import { Button, Navbar } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { startAuthentication } from '@simplewebauthn/browser';
-import { ApolloError, gql, useMutation } from "@apollo/client";
+import { ApolloError, useMutation } from "@apollo/client";
+import { User } from "./__generated__/graphql";
+import { gql } from './__generated__/gql';
 
-const BEGIN_LOGIN_QGL = gql`
+
+const BEGIN_LOGIN_QGL = gql(`
 mutation beginLogin {
   beginLogin
 }
-`
+`);
 
-const VALIDATE_LOGIN_QGL = gql`
+const VALIDATE_LOGIN_QGL = gql(`
 mutation validateLogin($body: CredentialRequestResponse!) {
     validateLogin(body: $body)
 }
-`
+`);
 
 function NavbarLogin({ me, onError, onSuccess }: {
-    me: { displayName: string, name: string } | null
+    me: User | null | undefined
     onSuccess: () => void
     onError: (errMsg: string) => void
 }) {
@@ -28,6 +31,10 @@ function NavbarLogin({ me, onError, onSuccess }: {
         e.preventDefault();
         e.stopPropagation();
         const result = await beginLogin();
+        if (!result || !result.data) {
+            onError("cannot request data")
+            return;
+        }
 
         try {
             const asseResp = await startAuthentication(result.data.beginLogin.publicKey);
@@ -37,6 +44,11 @@ function NavbarLogin({ me, onError, onSuccess }: {
                     body: JSON.stringify(asseResp),
                 },
             });
+
+            if (!verificationResp || !verificationResp.data) {
+                onError("cannot request data")
+                return;
+            }
 
             if (verificationResp.data.validateLogin) {
                 setTimeout(onSuccess, 0);

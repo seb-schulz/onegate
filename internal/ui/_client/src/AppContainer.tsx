@@ -3,11 +3,13 @@ import { Variant } from "react-bootstrap/types";
 import SignupCard from "./Signup";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { gql, useQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client";
+import { gql } from './__generated__/gql';
+import { Credential } from "./__generated__/graphql";
 import NavbarLogin from "./NavbarLogin";
 import Moment from "react-moment";
 
-const ME_GQL = gql`
+const ME_GQL = gql(`
 query me {
   me {
     displayName
@@ -18,7 +20,7 @@ query me {
       updatedAt
     }
   }
-}`
+}`);
 
 
 function InfoToast({ bg, setChildren, children }: {
@@ -39,7 +41,9 @@ function InfoToast({ bg, setChildren, children }: {
         </Toast></ToastContainer >
 }
 
-function Credentials({ credentials }) {
+function Credentials({ credentials }: {
+    credentials: Credential[]
+}) {
     const { t } = useTranslation();
 
     const tbody = credentials.map((cred, idx) => <tr key={cred.id}>
@@ -77,8 +81,8 @@ function AppContainer() {
 
     if (loading) return <p>Loading...</p>;
     if (error) return <p>Error : {error.message}</p>;
+    if (!data) return <p>Cannot load data</p>
 
-    const loggedOut = !data.me;
 
     const handleError = (e: string) => {
         setInfoType("danger")
@@ -86,7 +90,7 @@ function AppContainer() {
     };
 
     let row;
-    if (loggedOut) {
+    if (!data || !data.me) {
         row = <Col md={6} xs={true}>
             <SignupCard
                 onError={handleError}
@@ -96,7 +100,7 @@ function AppContainer() {
                 }} />
         </Col>;
     } else {
-        row = <Col><h1>{t("Credentials")}</h1><Credentials credentials={data.me.credentials} /></Col>;
+        row = <Col><h1>{t("Credentials")}</h1><Credentials credentials={data.me.credentials as Credential[]} /></Col>;
     }
 
 

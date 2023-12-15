@@ -1,20 +1,21 @@
 import React, { useState, useRef } from "react";
 import { Button, Card, Form } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
-import { ApolloError, gql, useMutation } from "@apollo/client";
+import { ApolloError, useMutation } from "@apollo/client";
 import { startRegistration } from '@simplewebauthn/browser';
+import { gql } from "./__generated__/gql";
 
-const CREATE_USER_GQL = gql`
+const CREATE_USER_GQL = gql(`
 mutation createUser($name: String!) {
   createUser(name: $name)
 }
-`
+`)
 
-const ADD_PASSKEY_QGL = gql`
+const ADD_PASSKEY_QGL = gql(`
 mutation addPasskey($body: CredentialCreationResponse!) {
   addPasskey(body: $body)
 }
-`
+`)
 
 function SignupCard({ onUserCreated, onError, onPasskeyAdded }: {
     onUserCreated: () => void
@@ -48,7 +49,10 @@ function SignupCard({ onUserCreated, onError, onPasskeyAdded }: {
             }
         });
 
-        if (!result.data || !result.data.createUser) return;
+        if (!result.data || !result.data.createUser) {
+            onError("cannot load data");
+            return;
+        }
         setTimeout(onUserCreated, 0);
 
         try {
@@ -60,9 +64,11 @@ function SignupCard({ onUserCreated, onError, onPasskeyAdded }: {
                 },
             });
 
-            if (addPasskeyData.data.addPasskey) {
-                setTimeout(onPasskeyAdded, 0);
+            if (!addPasskeyData.data || !addPasskeyData.data.addPasskey) {
+                onError("cannot load data");
+                return;
             }
+            setTimeout(onPasskeyAdded, 0);
         } catch (error) {
             onError((error as ApolloError).message);
         }
