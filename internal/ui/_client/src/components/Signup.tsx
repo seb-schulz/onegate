@@ -3,7 +3,7 @@ import { Button, Card, Form } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { ApolloError, useMutation } from "@apollo/client";
 import { startRegistration } from '@simplewebauthn/browser';
-import { gql } from "./__generated__/gql";
+import { gql } from "../__generated__/gql";
 
 const CREATE_USER_GQL = gql(`
 mutation createUser($name: String!) {

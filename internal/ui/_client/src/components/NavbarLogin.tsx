@@ -1,9 +1,8 @@
-import { Button, Navbar } from "react-bootstrap";
+import { Button, Navbar, Spinner } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { startAuthentication } from '@simplewebauthn/browser';
-import { ApolloError, useMutation } from "@apollo/client";
-import { User } from "./__generated__/graphql";
-import { gql } from './__generated__/gql';
+import { ApolloError, useMutation, useQuery } from "@apollo/client";
+import { gql } from '../__generated__/gql';
 
 
 const BEGIN_LOGIN_QGL = gql(`
@@ -18,14 +17,24 @@ mutation validateLogin($body: CredentialRequestResponse!) {
 }
 `);
 
-function NavbarLogin({ me, onError, onSuccess }: {
-    me: User | null | undefined
+const ME_GQL = gql(`
+query meNavbar {
+  me {
+    displayName
+    name
+  }
+}`);
+
+function NavbarLogin({ onError, onSuccess }: {
     onSuccess: () => void
     onError: (errMsg: string) => void
 }) {
     const { t } = useTranslation();
-    const [beginLogin, { loading: loadingBeginLogin, error: errorBeginLogin }] = useMutation(BEGIN_LOGIN_QGL);
-    const [validateLogin, { loading: loadingValidateLogin, error: errorValidateLogin }] = useMutation(VALIDATE_LOGIN_QGL);
+    const [beginLogin, { loading: loadingBeginLogin }] = useMutation(BEGIN_LOGIN_QGL);
+    const [validateLogin, { loading: loadingValidateLogin }] = useMutation(VALIDATE_LOGIN_QGL);
+    const { loading: loadingMe, data: dataMe, refetch: refetchMe } = useQuery(ME_GQL);
+
+    if (loadingBeginLogin || loadingValidateLogin) return <Spinner animation="border" />;
 
     const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
@@ -52,17 +61,20 @@ function NavbarLogin({ me, onError, onSuccess }: {
 
             if (verificationResp.data.validateLogin) {
                 setTimeout(onSuccess, 0);
+                refetchMe()
             }
         } catch (error) {
             onError((error as ApolloError).message);
         }
     };
 
-    if (!me) return <>
+    if (dataMe === undefined) return "";
+
+    if (!dataMe || !dataMe.me) return <>
         <Button disabled={!window.PublicKeyCredential} onClick={handleSubmit}>{t('Login')}</Button>
     </>;
 
-    return <Navbar.Text>Name: {me.displayName ? me.displayName : me.name}</Navbar.Text>
+    return <Navbar.Text>Name: {dataMe.me.displayName ? dataMe.me.displayName : dataMe.me.name}</Navbar.Text>
 }
 
 export default NavbarLogin;
