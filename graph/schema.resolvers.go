@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/protocol/webauthncose"
@@ -29,6 +30,8 @@ func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protoc
 	if session == nil {
 		return nil, fmt.Errorf("session is missing")
 	}
+
+	time.Sleep(2 * time.Second)
 
 	if session.UserID != nil {
 		return nil, fmt.Errorf("currently logged in with an user")
@@ -96,6 +99,8 @@ func (r *mutationResolver) BeginLogin(ctx context.Context) (*protocol.Credential
 		return nil, fmt.Errorf("session is missing")
 	}
 
+	time.Sleep(2 * time.Second)
+
 	if session.UserID != nil {
 		return nil, fmt.Errorf("user is logged-in")
 	}
@@ -115,6 +120,8 @@ func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool
 	if session == nil {
 		return false, fmt.Errorf("session is missing")
 	}
+
+	time.Sleep(2 * time.Second)
 
 	if session.UserID != nil {
 		return false, fmt.Errorf("user is logged-in")
