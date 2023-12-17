@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/seb-schulz/onegate/internal/model"
 	"gorm.io/gorm"
@@ -24,9 +23,11 @@ func SessionMiddleware(db *gorm.DB) func(http.Handler) http.Handler {
 			if err != nil {
 				model.CreateSession(tx, &session)
 				http.SetCookie(w, &http.Cookie{
-					Name:    "session",
-					Value:   session.Token(),
-					Expires: time.Now().Add(30 * time.Minute),
+					Name:     "session",
+					Value:    session.Token(),
+					Secure:   true,
+					HttpOnly: true,
+					SameSite: http.SameSiteStrictMode,
 				})
 			} else {
 				err := model.FirstSessionByToken(tx, cookie.Value, &session)
