@@ -14,7 +14,6 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/seb-schulz/onegate/internal/middleware"
 	dbmodel "github.com/seb-schulz/onegate/internal/model"
 	"gorm.io/gorm"
 )
@@ -26,11 +25,7 @@ func (r *credentialResolver) ID(ctx context.Context, obj *dbmodel.Credential) (s
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protocol.CredentialCreation, error) {
-	session := middleware.SessionFromContext(ctx)
-	if session == nil {
-		return nil, fmt.Errorf("session is missing")
-	}
-
+	session := mustSessionFromContext(ctx)
 	time.Sleep(2 * time.Second)
 
 	if session.UserID != nil {
@@ -57,10 +52,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protoc
 
 // AddPasskey is the resolver for the addPasskey field.
 func (r *mutationResolver) AddPasskey(ctx context.Context, body string) (bool, error) {
-	session := middleware.SessionFromContext(ctx)
-	if session == nil {
-		return false, fmt.Errorf("session is missing")
-	}
+	session := mustSessionFromContext(ctx)
 
 	if session.UserID == nil {
 		return false, fmt.Errorf("no user logged in")
@@ -94,10 +86,7 @@ func (r *mutationResolver) AddPasskey(ctx context.Context, body string) (bool, e
 
 // BeginLogin is the resolver for the beginLogin field.
 func (r *mutationResolver) BeginLogin(ctx context.Context) (*protocol.CredentialAssertion, error) {
-	session := middleware.SessionFromContext(ctx)
-	if session == nil {
-		return nil, fmt.Errorf("session is missing")
-	}
+	session := mustSessionFromContext(ctx)
 
 	time.Sleep(2 * time.Second)
 
@@ -116,10 +105,7 @@ func (r *mutationResolver) BeginLogin(ctx context.Context) (*protocol.Credential
 
 // ValidateLogin is the resolver for the validateLogin field.
 func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool, error) {
-	session := middleware.SessionFromContext(ctx)
-	if session == nil {
-		return false, fmt.Errorf("session is missing")
-	}
+	session := mustSessionFromContext(ctx)
 
 	time.Sleep(2 * time.Second)
 
@@ -175,10 +161,7 @@ func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool
 
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*dbmodel.User, error) {
-	session := middleware.SessionFromContext(ctx)
-	if session == nil {
-		return nil, fmt.Errorf("session is missing")
-	}
+	session := mustSessionFromContext(ctx)
 
 	if session.UserID == nil {
 		return nil, nil // ignore error to dedect logged-out scenario
