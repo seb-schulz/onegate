@@ -42,8 +42,7 @@ export default function Root() {
             <Navbar expand="lg" className="bg-body-tertiary">
                 <Container>
                     <Navbar.Brand>OneGate</Navbar.Brand>
-                    <Navbar.Toggle aria-controls="basic-navbar-nav" />
-                    <Navbar.Collapse id="basic-navbar-nav">
+                    <Navbar.Collapse>
                         <Nav className="me-auto">
                             <NavLink
                                 to="/credentials"
@@ -56,6 +55,7 @@ export default function Root() {
                         </Nav>
                     </Navbar.Collapse>
                     <NavbarLogin onError={handleError} onSuccess={() => setFlashMessage({ msg: t("Login succeeded"), type: "success" })} />
+                    <Navbar.Toggle aria-controls="basic-navbar-nav" />
                 </Container>
             </Navbar>
             <FlashMessageToast bg={flashMessage.type} emptyChildren={() => setFlashMessage({ ...flashMessage, msg: "" })}>{flashMessage.msg}</FlashMessageToast>
