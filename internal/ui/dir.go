@@ -36,6 +36,10 @@ func init() {
 		MinifyIdentifiers: false,
 		MinifySyntax:      false,
 		Sourcemap:         api.SourceMapInline,
+		Loader: map[string]api.Loader{
+			".woff2": api.LoaderDataURL,
+			".woff":  api.LoaderDataURL,
+		},
 	})
 	if err != nil {
 		log.Fatalln("Cannot init esbuild watch: ", err)

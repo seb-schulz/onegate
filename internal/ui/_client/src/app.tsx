@@ -5,7 +5,7 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import 'bootstrap/dist/css/bootstrap.min.css';
-
+import 'bootstrap-icons/font/bootstrap-icons.min.css';
 import ErrorPage from './error-page';
 import Root from './routes/root';
 import Index from './routes';

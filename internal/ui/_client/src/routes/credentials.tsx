@@ -23,6 +23,11 @@ export default function Credentials() {
     if (error) return <p>Error : {error.message}</p>;
     if (!data?.me) return t("You are logged-out!");
 
+    const actions = <ButtonGroup size="sm">
+        <Button disabled variant="outline-secondary" size="sm"><i className="bi bi-pencil" /></Button>
+        <Button disabled variant="outline-danger"><i className="bi bi-trash" /></Button>
+    </ButtonGroup>;
+
     const credList = data?.me?.credentials!.map((cred, idx) =>
         <ListGroup.Item key={cred!.id}>
             <Row><big>{"Credential " + (idx + 1)}</big></Row>
@@ -42,19 +47,19 @@ export default function Credentials() {
                     </Stack>
                 </Col>
             </Row>
-            <div className="d-flex flex-row-reverse">
-                <ButtonGroup size="sm"><Button disabled>{t("Edit")}</Button><Button disabled>{t("Remove")}</Button></ButtonGroup>
-            </div>
+            <div className="d-flex flex-row-reverse">{actions}</div>
         </ListGroup.Item>
     );
 
     const credTable = data?.me?.credentials!.map(
         (cred, idx) =>
             <tr key={cred!.id}>
-                <td>{"Credential " + (idx + 1)}</td>
+                <td className="d-flex justify-content-between"><span>{"Credential " + (idx + 1)}</span></td>
                 <td><Moment fromNow withTitle>{cred!.createdAt}</Moment></td>
                 <td><Moment fromNow withTitle>{cred!.updatedAt}</Moment></td>
-                <td><ButtonGroup size="sm"><Button disabled>{t("Edit")}</Button><Button disabled>{t("Remove")}</Button></ButtonGroup></td>
+                <td className="d-flex justify-content-end">
+                    {actions}
+                </td>
             </tr>
     );
 

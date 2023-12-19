@@ -27,6 +27,10 @@ func main() {
 		MinifyWhitespace:  true,
 		MinifyIdentifiers: true,
 		MinifySyntax:      true,
+		Loader: map[string]api.Loader{
+			".woff2": api.LoaderDataURL,
+			".woff":  api.LoaderDataURL,
+		},
 	})
 	if len(result.Errors) != 0 {
 		for _, err := range result.Errors {
