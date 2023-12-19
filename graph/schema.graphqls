@@ -20,6 +20,7 @@ type RelyingParty {
 
 type Credential {
   id: ID!
+  description: String!,
   createdAt: Time!
   updatedAt: Time!
 }
@@ -36,7 +37,9 @@ type Query {
 
 type Mutation {
  createUser(name: String!): CredentialCreation!
- addPasskey(body: CredentialCreationResponse!): Boolean!
+ addCredential(body: CredentialCreationResponse!): Boolean!
+ updateCredential(id: ID!, description: String): Credential!
+ removeCredential(id: ID!): Boolean!
  beginLogin: CredentialAssertion!
  validateLogin(body: CredentialRequestResponse!): Boolean!
 }

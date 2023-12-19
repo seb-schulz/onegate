@@ -12,8 +12,8 @@ mutation createUser($name: String!) {
 `)
 
 const ADD_PASSKEY_QGL = gql(`
-mutation addPasskey($body: CredentialCreationResponse!) {
-  addPasskey(body: $body)
+mutation addCredential($body: CredentialCreationResponse!) {
+    addCredential(body: $body)
 }
 `)
 
@@ -26,7 +26,7 @@ function SignupCard({ onUserCreated, onError, onPasskeyAdded }: {
     const [validated, setValidated] = useState(false);
     const userNameRef = useRef<HTMLInputElement | null>(null);
     const [createUser, { loading: loadingCreateUser }] = useMutation(CREATE_USER_GQL);
-    const [addPasskey, { loading: loadingAddPasskey }] = useMutation(ADD_PASSKEY_QGL);
+    const [addCredential, { loading: loadingAddPasskey }] = useMutation(ADD_PASSKEY_QGL);
 
     if (loadingCreateUser || loadingAddPasskey) return <p>Loading...</p>;
 
@@ -58,13 +58,13 @@ function SignupCard({ onUserCreated, onError, onPasskeyAdded }: {
         try {
             const attResp = await startRegistration(result.data.createUser.publicKey);
 
-            const addPasskeyData = await addPasskey({
+            const addPasskeyData = await addCredential({
                 variables: {
                     body: JSON.stringify(attResp),
                 },
             });
 
-            if (!addPasskeyData.data || !addPasskeyData.data.addPasskey) {
+            if (!addPasskeyData?.data?.addCredential) {
                 onError("cannot load data");
                 return;
             }

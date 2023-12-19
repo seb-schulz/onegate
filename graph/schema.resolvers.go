@@ -51,7 +51,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protoc
 }
 
 // AddPasskey is the resolver for the addPasskey field.
-func (r *mutationResolver) AddPasskey(ctx context.Context, body string) (bool, error) {
+func (r *mutationResolver) AddCredential(ctx context.Context, body string) (bool, error) {
 	session := mustSessionFromContext(ctx)
 
 	if session.UserID == nil {
@@ -81,6 +81,52 @@ func (r *mutationResolver) AddPasskey(ctx context.Context, body string) (bool, e
 		panic(err)
 	}
 
+	return true, nil
+}
+
+// UpdateCredential is the resolver for the updateCredential field.
+func (r *mutationResolver) UpdateCredential(ctx context.Context, id string, description *string) (*dbmodel.Credential, error) {
+	if description == nil {
+		return nil, fmt.Errorf("no mutation required")
+	}
+
+	if len(*description) > 255 {
+		return nil, fmt.Errorf("length of description must be less or equal 255 characters")
+	}
+	session := mustSessionFromContext(ctx)
+
+	if session.UserID == nil {
+		return nil, fmt.Errorf("user not logged in")
+	}
+
+	cred, err := dbmodel.CredentialByUserID(r.DB, *session.UserID, id)
+	if err != nil {
+		return nil, err
+	}
+	cred.Description = *description
+	r.DB.Save(&cred)
+
+	return cred, nil
+}
+
+// RemoveCredential is the resolver for the removeCredential field.
+func (r *mutationResolver) RemoveCredential(ctx context.Context, id string) (bool, error) {
+	session := mustSessionFromContext(ctx)
+
+	if session.UserID == nil {
+		return false, fmt.Errorf("user not logged in")
+	}
+
+	if len(session.User.Credentials) <= 1 {
+		return false, fmt.Errorf("cannot delete last remaining credential")
+	}
+
+	cred, err := dbmodel.CredentialByUserID(r.DB, *session.UserID, id)
+	if err != nil {
+		return false, err
+	}
+
+	r.DB.Delete(&cred)
 	return true, nil
 }
 

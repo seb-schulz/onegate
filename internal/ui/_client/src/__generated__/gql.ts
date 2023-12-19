@@ -17,7 +17,7 @@ const documents = {
     "\nmutation validateLogin($body: CredentialRequestResponse!) {\n    validateLogin(body: $body)\n}\n": types.ValidateLoginDocument,
     "\nquery meNavbar {\n  me {\n    displayName\n    name\n  }\n}": types.MeNavbarDocument,
     "\nmutation createUser($name: String!) {\n  createUser(name: $name)\n}\n": types.CreateUserDocument,
-    "\nmutation addPasskey($body: CredentialCreationResponse!) {\n  addPasskey(body: $body)\n}\n": types.AddPasskeyDocument,
+    "\nmutation addCredential($body: CredentialCreationResponse!) {\n    addCredential(body: $body)\n}\n": types.AddCredentialDocument,
     "\nquery myCredentials {\n  me {\n    credentials {\n      id\n      createdAt\n      updatedAt\n    }\n  }\n}": types.MyCredentialsDocument,
     "\nquery meIndex {\n  me {\n    displayName\n    name\n  }\n}": types.MeIndexDocument,
 };
@@ -55,7 +55,7 @@ export function gql(source: "\nmutation createUser($name: String!) {\n  createUs
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "\nmutation addPasskey($body: CredentialCreationResponse!) {\n  addPasskey(body: $body)\n}\n"): (typeof documents)["\nmutation addPasskey($body: CredentialCreationResponse!) {\n  addPasskey(body: $body)\n}\n"];
+export function gql(source: "\nmutation addCredential($body: CredentialCreationResponse!) {\n    addCredential(body: $body)\n}\n"): (typeof documents)["\nmutation addCredential($body: CredentialCreationResponse!) {\n    addCredential(body: $body)\n}\n"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

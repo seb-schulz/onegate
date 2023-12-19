@@ -52,16 +52,19 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Credential struct {
-		CreatedAt func(childComplexity int) int
-		ID        func(childComplexity int) int
-		UpdatedAt func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		Description func(childComplexity int) int
+		ID          func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
 	}
 
 	Mutation struct {
-		AddPasskey    func(childComplexity int, body string) int
-		BeginLogin    func(childComplexity int) int
-		CreateUser    func(childComplexity int, name string) int
-		ValidateLogin func(childComplexity int, body string) int
+		AddCredential    func(childComplexity int, body string) int
+		BeginLogin       func(childComplexity int) int
+		CreateUser       func(childComplexity int, name string) int
+		RemoveCredential func(childComplexity int, id string) int
+		UpdateCredential func(childComplexity int, id string, description *string) int
+		ValidateLogin    func(childComplexity int, body string) int
 	}
 
 	PubKeyCredParam struct {
@@ -90,7 +93,9 @@ type CredentialResolver interface {
 }
 type MutationResolver interface {
 	CreateUser(ctx context.Context, name string) (*protocol.CredentialCreation, error)
-	AddPasskey(ctx context.Context, body string) (bool, error)
+	AddCredential(ctx context.Context, body string) (bool, error)
+	UpdateCredential(ctx context.Context, id string, description *string) (*model.Credential, error)
+	RemoveCredential(ctx context.Context, id string) (bool, error)
 	BeginLogin(ctx context.Context) (*protocol.CredentialAssertion, error)
 	ValidateLogin(ctx context.Context, body string) (bool, error)
 }
@@ -124,6 +129,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Credential.CreatedAt(childComplexity), true
 
+	case "Credential.description":
+		if e.complexity.Credential.Description == nil {
+			break
+		}
+
+		return e.complexity.Credential.Description(childComplexity), true
+
 	case "Credential.id":
 		if e.complexity.Credential.ID == nil {
 			break
@@ -138,17 +150,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Credential.UpdatedAt(childComplexity), true
 
-	case "Mutation.addPasskey":
-		if e.complexity.Mutation.AddPasskey == nil {
+	case "Mutation.addCredential":
+		if e.complexity.Mutation.AddCredential == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_addPasskey_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_addCredential_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddPasskey(childComplexity, args["body"].(string)), true
+		return e.complexity.Mutation.AddCredential(childComplexity, args["body"].(string)), true
 
 	case "Mutation.beginLogin":
 		if e.complexity.Mutation.BeginLogin == nil {
@@ -168,6 +180,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateUser(childComplexity, args["name"].(string)), true
+
+	case "Mutation.removeCredential":
+		if e.complexity.Mutation.RemoveCredential == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeCredential_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveCredential(childComplexity, args["id"].(string)), true
+
+	case "Mutation.updateCredential":
+		if e.complexity.Mutation.UpdateCredential == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateCredential_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateCredential(childComplexity, args["id"].(string), args["description"].(*string)), true
 
 	case "Mutation.validateLogin":
 		if e.complexity.Mutation.ValidateLogin == nil {
@@ -360,7 +396,7 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Mutation_addPasskey_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_addCredential_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -387,6 +423,45 @@ func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, 
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeCredential_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateCredential_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["description"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["description"] = arg1
 	return args, nil
 }
 
@@ -497,6 +572,50 @@ func (ec *executionContext) fieldContext_Credential_id(ctx context.Context, fiel
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Credential_description(ctx context.Context, field graphql.CollectedField, obj *model.Credential) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Credential_description(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Credential_description(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Credential",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -645,8 +764,8 @@ func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_addPasskey(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_addPasskey(ctx, field)
+func (ec *executionContext) _Mutation_addCredential(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addCredential(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -659,7 +778,7 @@ func (ec *executionContext) _Mutation_addPasskey(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddPasskey(rctx, fc.Args["body"].(string))
+		return ec.resolvers.Mutation().AddCredential(rctx, fc.Args["body"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -676,7 +795,7 @@ func (ec *executionContext) _Mutation_addPasskey(ctx context.Context, field grap
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_addPasskey(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_addCredential(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -693,7 +812,127 @@ func (ec *executionContext) fieldContext_Mutation_addPasskey(ctx context.Context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_addPasskey_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_addCredential_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateCredential(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateCredential(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateCredential(rctx, fc.Args["id"].(string), fc.Args["description"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Credential)
+	fc.Result = res
+	return ec.marshalNCredential2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateCredential(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Credential_id(ctx, field)
+			case "description":
+				return ec.fieldContext_Credential_description(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Credential_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Credential_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Credential", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateCredential_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeCredential(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeCredential(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveCredential(rctx, fc.Args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeCredential(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeCredential_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1282,6 +1521,8 @@ func (ec *executionContext) fieldContext_User_credentials(ctx context.Context, f
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Credential_id(ctx, field)
+			case "description":
+				return ec.fieldContext_Credential_description(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Credential_createdAt(ctx, field)
 			case "updatedAt":
@@ -3121,6 +3362,11 @@ func (ec *executionContext) _Credential(ctx context.Context, sel ast.SelectionSe
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "description":
+			out.Values[i] = ec._Credential_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "createdAt":
 			out.Values[i] = ec._Credential_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3180,9 +3426,23 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "addPasskey":
+		case "addCredential":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_addPasskey(ctx, field)
+				return ec._Mutation_addCredential(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateCredential":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateCredential(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeCredential":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeCredential(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -3771,6 +4031,10 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNCredential2githubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx context.Context, sel ast.SelectionSet, v model.Credential) graphql.Marshaler {
+	return ec._Credential(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNCredential2ᚕgithubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx context.Context, sel ast.SelectionSet, v []model.Credential) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -3807,6 +4071,16 @@ func (ec *executionContext) marshalNCredential2ᚕgithubᚗcomᚋsebᚑschulzᚋ
 	wg.Wait()
 
 	return ret
+}
+
+func (ec *executionContext) marshalNCredential2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx context.Context, sel ast.SelectionSet, v *model.Credential) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Credential(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNCredentialAssertion2githubᚗcomᚋgoᚑwebauthnᚋwebauthnᚋprotocolᚐCredentialAssertion(ctx context.Context, v interface{}) (protocol.CredentialAssertion, error) {
