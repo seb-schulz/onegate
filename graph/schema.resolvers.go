@@ -212,9 +212,25 @@ func (r *queryResolver) Me(ctx context.Context) (*dbmodel.User, error) {
 	if session.UserID == nil {
 		return nil, nil // ignore error to dedect logged-out scenario
 	}
-	r.DB.Model(&session.User).Preload("Credentials").First(&session.User)
+	r.DB.Model(&session.User).First(&session.User)
 
 	return session.User, nil
+}
+
+// Credentials is the resolver for the credentials field.
+func (r *queryResolver) Credentials(ctx context.Context) ([]*dbmodel.Credential, error) {
+	session := mustSessionFromContext(ctx)
+
+	if session.UserID == nil {
+		return nil, nil // ignore error to dedect logged-out scenario
+	}
+
+	creds := []*dbmodel.Credential{}
+	if result := r.DB.Where("user_id = ?", session.UserID).Find(&creds); result.Error != nil {
+		return nil, result.Error
+	}
+
+	return creds, nil
 }
 
 // Credential returns CredentialResolver implementation.

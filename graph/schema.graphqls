@@ -28,11 +28,12 @@ type Credential {
 type User {
   name: String!
   displayName: String!
-  credentials: [Credential]!
+
 }
 
 type Query {
   me: User
+  credentials: [Credential]
 }
 
 type Mutation {

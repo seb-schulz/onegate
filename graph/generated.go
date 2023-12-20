@@ -73,7 +73,8 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Me func(childComplexity int) int
+		Credentials func(childComplexity int) int
+		Me          func(childComplexity int) int
 	}
 
 	RelyingParty struct {
@@ -82,7 +83,6 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		Credentials func(childComplexity int) int
 		DisplayName func(childComplexity int) int
 		Name        func(childComplexity int) int
 	}
@@ -101,6 +101,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Me(ctx context.Context) (*model.User, error)
+	Credentials(ctx context.Context) ([]*model.Credential, error)
 }
 
 type executableSchema struct {
@@ -231,6 +232,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PubKeyCredParam.Type(childComplexity), true
 
+	case "Query.credentials":
+		if e.complexity.Query.Credentials == nil {
+			break
+		}
+
+		return e.complexity.Query.Credentials(childComplexity), true
+
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
 			break
@@ -251,13 +259,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.RelyingParty.Name(childComplexity), true
-
-	case "User.credentials":
-		if e.complexity.User.Credentials == nil {
-			break
-		}
-
-		return e.complexity.User.Credentials(childComplexity), true
 
 	case "User.displayName":
 		if e.complexity.User.DisplayName == nil {
@@ -1166,10 +1167,59 @@ func (ec *executionContext) fieldContext_Query_me(ctx context.Context, field gra
 				return ec.fieldContext_User_name(ctx, field)
 			case "displayName":
 				return ec.fieldContext_User_displayName(ctx, field)
-			case "credentials":
-				return ec.fieldContext_User_credentials(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_credentials(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_credentials(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Credentials(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Credential)
+	fc.Result = res
+	return ec.marshalOCredential2ᚕᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_credentials(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Credential_id(ctx, field)
+			case "description":
+				return ec.fieldContext_Credential_description(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Credential_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Credential_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Credential", field.Name)
 		},
 	}
 	return fc, nil
@@ -1475,60 +1525,6 @@ func (ec *executionContext) fieldContext_User_displayName(ctx context.Context, f
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _User_credentials(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_User_credentials(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Credentials, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]model.Credential)
-	fc.Result = res
-	return ec.marshalNCredential2ᚕgithubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_User_credentials(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "User",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Credential_id(ctx, field)
-			case "description":
-				return ec.fieldContext_Credential_description(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Credential_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Credential_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Credential", field.Name)
 		},
 	}
 	return fc, nil
@@ -3566,6 +3562,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "credentials":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_credentials(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -3659,11 +3674,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "displayName":
 			out.Values[i] = ec._User_displayName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "credentials":
-			out.Values[i] = ec._User_credentials(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4033,44 +4043,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 
 func (ec *executionContext) marshalNCredential2githubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx context.Context, sel ast.SelectionSet, v model.Credential) graphql.Marshaler {
 	return ec._Credential(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNCredential2ᚕgithubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx context.Context, sel ast.SelectionSet, v []model.Credential) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOCredential2githubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	return ret
 }
 
 func (ec *executionContext) marshalNCredential2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx context.Context, sel ast.SelectionSet, v *model.Credential) graphql.Marshaler {
@@ -4524,8 +4496,52 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) marshalOCredential2githubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx context.Context, sel ast.SelectionSet, v model.Credential) graphql.Marshaler {
-	return ec._Credential(ctx, sel, &v)
+func (ec *executionContext) marshalOCredential2ᚕᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx context.Context, sel ast.SelectionSet, v []*model.Credential) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOCredential2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOCredential2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋinternalᚋmodelᚐCredential(ctx context.Context, sel ast.SelectionSet, v *model.Credential) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Credential(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
