@@ -27,13 +27,16 @@ mutation updateCredential($id: ID!, $description: String) {
   }
 }`);
 
-function InlineEditingText({ value, size = 'sm', onSubmit }: {
+function InlineEditingText({ value, size = 'sm', onSubmit, loading }: {
     value: string,
     size?: 'sm' | 'lg',
     onSubmit?: (value?: string) => Promise<void>,
+    loading?: boolean
 }) {
     const [editMode, setEditMode] = useState(false);
     const inputRef = useRef<HTMLInputElement | null>(null);
+
+    if (!!loading) return <Spinner animation="border" />
 
     let actions;
     if (editMode) {
@@ -59,9 +62,8 @@ function InlineEditingText({ value, size = 'sm', onSubmit }: {
     }
 
     return (
-        <InputGroup size={size} hasValidation>
-            <Form.Control ref={inputRef} readOnly={!editMode} defaultValue={value} />
-            {actions}
+        <InputGroup size={size}>
+            <Form.Control ref={inputRef} readOnly={!editMode} defaultValue={value} />{actions}
         </InputGroup>
     );
 
@@ -101,11 +103,9 @@ function CredentialEntry({ modus, credential, idx }: {
     const description = !!credential.description ? credential.description : "Credential " + (idx + 1)
 
     if (modus === "list") {
-        if (loading) return <Spinner animation="border" />;
-
         return (
             <ListGroup.Item>
-                <Row><big>{description}</big></Row>
+                <Row className="mb-2"><InlineEditingText value={description} onSubmit={handleSubmit} loading={loading} size="lg" /></Row>
                 <Row>
                     <Col sm={true}>
                         <Stack direction="horizontal" gap={1}>
@@ -129,7 +129,7 @@ function CredentialEntry({ modus, credential, idx }: {
         return (
             <tr>
                 <td>
-                    {loading ? <Spinner animation="border" /> : <InlineEditingText value={description} onSubmit={handleSubmit} />}
+                    <InlineEditingText value={description} onSubmit={handleSubmit} loading={loading} />
                 </td>
                 <td><Moment fromNow withTitle>{credential!.createdAt}</Moment></td>
                 <td><Moment fromNow withTitle>{credential!.updatedAt}</Moment></td>
@@ -170,8 +170,8 @@ export default function Credentials() {
     return (
         <>
             <Row><Col>
-                <ListGroup className="d-sm-none pb-2">{credList}</ListGroup>
-                <Table className="d-none d-sm-table" responsive>
+                <ListGroup className="d-md-none pb-2">{credList}</ListGroup>
+                <Table className="d-none d-md-table" responsive>
                     <thead>
                         <tr>
                             <th>{t("Description")}</th>
