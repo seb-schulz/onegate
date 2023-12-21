@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
-	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/go-webauthn/webauthn/webauthn"
 	dbmodel "github.com/seb-schulz/onegate/internal/model"
 	"gorm.io/gorm"
@@ -41,13 +40,19 @@ func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protoc
 		panic(err)
 	}
 
-	options, webauthn_session, err := r.WebAuthn.BeginRegistration(user, webauthn.WithCredentialParameters([]protocol.CredentialParameter{{Type: protocol.PublicKeyCredentialType, Algorithm: webauthncose.AlgES256}, {Type: protocol.PublicKeyCredentialType, Algorithm: webauthncose.AlgRS256}}), webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementPreferred))
-	if err != nil {
-		return nil, err
-	}
-	r.DB.Create(&dbmodel.AuthSession{SessionID: session.ID, Data: *webauthn_session})
+	return r.beginRegistration(user, session.ID)
+}
 
-	return options, nil
+// InitCredential is the resolver for the initCredential field.
+func (r *mutationResolver) InitCredential(ctx context.Context) (*protocol.CredentialCreation, error) {
+	session := mustSessionFromContext(ctx)
+	time.Sleep(2 * time.Second)
+
+	if session.UserID == nil {
+		return nil, fmt.Errorf("user not logged in")
+	}
+
+	return r.beginRegistration(session.User, session.ID)
 }
 
 // AddPasskey is the resolver for the addPasskey field.
@@ -59,7 +64,7 @@ func (r *mutationResolver) AddCredential(ctx context.Context, body string) (bool
 	}
 
 	auth_session := dbmodel.AuthSession{SessionID: session.ID}
-	if result := r.DB.First(&auth_session, "session_id = ?", session.ID); result.Error != nil {
+	if result := r.DB.Order("updated_at DESC").First(&auth_session, "session_id = ?", session.ID); result.Error != nil {
 		return false, fmt.Errorf("no registration session found")
 	}
 	webauthn_session := auth_session.Data

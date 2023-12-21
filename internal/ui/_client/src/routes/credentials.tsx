@@ -1,4 +1,5 @@
 import { ApolloError, useMutation, useQuery } from "@apollo/client";
+import { startRegistration } from "@simplewebauthn/browser";
 import { useRef, useState } from "react";
 import { Button, ButtonGroup, Col, Form, InputGroup, ListGroup, Row, Spinner, Stack, Table } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
@@ -7,8 +8,6 @@ import { useOutletContext } from "react-router-dom";
 import { gql } from '../__generated__/gql';
 import * as graphql from '../__generated__/graphql';
 import { ContextType } from "./root";
-
-
 
 const ME_GQL = gql(`
 query credentials {
@@ -26,6 +25,18 @@ mutation updateCredential($id: ID!, $description: String) {
     id
   }
 }`);
+
+const INIT_CREDENTIAL_QGL = gql(`
+mutation initCredential {
+    initCredential
+}
+`)
+
+const ADD_CREDENTIAL_QGL = gql(`
+mutation addCredential($body: CredentialCreationResponse!) {
+    addCredential(body: $body)
+}
+`)
 
 function InlineEditingText({ value, size = 'sm', onSubmit, loading }: {
     value: string,
@@ -75,7 +86,7 @@ function CredentialEntry({ modus, credential, idx }: {
     idx: number
 }) {
     const { t } = useTranslation();
-    const [updateCredential, { loading, error, data }] = useMutation(UPDATE_GQL);
+    const [updateCredential, { loading }] = useMutation(UPDATE_GQL);
     const { setFlashMessage } = useOutletContext<ContextType>()
 
     const actions = <ButtonGroup size="sm">
@@ -139,17 +150,18 @@ function CredentialEntry({ modus, credential, idx }: {
             </tr>
         )
     }
-
 }
 
 export default function Credentials() {
     const { t } = useTranslation();
-    const { loading, error, data } = useQuery(ME_GQL, {
+    const { setFlashMessage } = useOutletContext<ContextType>()
+    const { loading, data, refetch } = useQuery(ME_GQL, {
         onError: (error) => {
             setFlashMessage({ msg: (error as ApolloError).message, type: "danger" })
         }
     });
-    const { setFlashMessage } = useOutletContext<ContextType>()
+    const [initCredential, { loading: loadingInitPasskey }] = useMutation(INIT_CREDENTIAL_QGL);
+    const [addCredential, { loading: loadingAddPasskey }] = useMutation(ADD_CREDENTIAL_QGL);
 
 
     if (loading) return <Spinner animation="border" />;
@@ -167,6 +179,41 @@ export default function Credentials() {
 
     );
 
+    const handleAddCredential = async (e: React.SyntheticEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const result = await initCredential({
+            onError: (error) => {
+                setFlashMessage({ msg: (error as ApolloError).message, type: "danger" });
+            }
+        });
+
+        if (!result.data || !result.data.initCredential) {
+            setFlashMessage({ msg: t("cannot load data"), type: "danger" });
+            return;
+        }
+
+        try {
+            const attResp = await startRegistration(result.data.initCredential.publicKey);
+
+            const addedData = await addCredential({
+                variables: {
+                    body: JSON.stringify(attResp),
+                },
+            });
+
+            if (!addedData?.data?.addCredential) {
+                setFlashMessage({ msg: t("cannot load data"), type: "danger" });
+                return;
+            }
+            refetch()
+        } catch (error) {
+            setFlashMessage({ msg: (error as ApolloError).message, type: "danger" });
+        }
+
+    }
+
     return (
         <>
             <Row><Col>
@@ -183,7 +230,7 @@ export default function Credentials() {
                     <tbody>{credTable}</tbody>
                 </Table>
             </Col></Row>
-            <Row><Col><Button disabled>Add</Button></Col></Row>
+            <Row><Col><Button onClick={handleAddCredential}>Add</Button></Col></Row>
         </>
     )
 }

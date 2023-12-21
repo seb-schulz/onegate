@@ -38,6 +38,7 @@ type Query {
 
 type Mutation {
  createUser(name: String!): CredentialCreation!
+ initCredential: CredentialCreation!
  addCredential(body: CredentialCreationResponse!): Boolean!
  updateCredential(id: ID!, description: String): Credential!
  removeCredential(id: ID!): Boolean!

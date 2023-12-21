@@ -62,6 +62,7 @@ type ComplexityRoot struct {
 		AddCredential    func(childComplexity int, body string) int
 		BeginLogin       func(childComplexity int) int
 		CreateUser       func(childComplexity int, name string) int
+		InitCredential   func(childComplexity int) int
 		RemoveCredential func(childComplexity int, id string) int
 		UpdateCredential func(childComplexity int, id string, description *string) int
 		ValidateLogin    func(childComplexity int, body string) int
@@ -93,6 +94,7 @@ type CredentialResolver interface {
 }
 type MutationResolver interface {
 	CreateUser(ctx context.Context, name string) (*protocol.CredentialCreation, error)
+	InitCredential(ctx context.Context) (*protocol.CredentialCreation, error)
 	AddCredential(ctx context.Context, body string) (bool, error)
 	UpdateCredential(ctx context.Context, id string, description *string) (*model.Credential, error)
 	RemoveCredential(ctx context.Context, id string) (bool, error)
@@ -181,6 +183,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateUser(childComplexity, args["name"].(string)), true
+
+	case "Mutation.initCredential":
+		if e.complexity.Mutation.InitCredential == nil {
+			break
+		}
+
+		return e.complexity.Mutation.InitCredential(childComplexity), true
 
 	case "Mutation.removeCredential":
 		if e.complexity.Mutation.RemoveCredential == nil {
@@ -761,6 +770,50 @@ func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context
 	if fc.Args, err = ec.field_Mutation_createUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_initCredential(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_initCredential(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().InitCredential(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*protocol.CredentialCreation)
+	fc.Result = res
+	return ec.marshalNCredentialCreation2ᚖgithubᚗcomᚋgoᚑwebauthnᚋwebauthnᚋprotocolᚐCredentialCreation(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_initCredential(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type CredentialCreation does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -3418,6 +3471,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "createUser":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createUser(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "initCredential":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_initCredential(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
