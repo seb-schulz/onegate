@@ -41,7 +41,7 @@ export default function Root() {
         <Stack gap={2}>
             <Navbar expand="lg" className="bg-body-tertiary">
                 <Container>
-                    <Navbar.Brand>OneGate</Navbar.Brand>
+                    <Navbar.Brand href="/">OneGate</Navbar.Brand>
                     <Navbar.Collapse>
                         <Nav className="me-auto">
                             <NavLink
