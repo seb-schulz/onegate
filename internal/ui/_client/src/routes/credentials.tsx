@@ -1,6 +1,6 @@
 import { ApolloError, useMutation, useQuery } from "@apollo/client";
 import { startRegistration } from "@simplewebauthn/browser";
-import { useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { Button, ButtonGroup, Col, Form, InputGroup, ListGroup, Row, Spinner, Stack, Table } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import Moment from "react-moment";
@@ -35,6 +35,12 @@ mutation initCredential {
 const ADD_CREDENTIAL_QGL = gql(`
 mutation addCredential($body: CredentialCreationResponse!) {
     addCredential(body: $body)
+}
+`)
+
+const REMOVE_CREDENTIAL_QGL = gql(`
+mutation removeCredential($id: ID!) {
+    removeCredential(id: $id)
 }
 `)
 
@@ -80,17 +86,18 @@ function InlineEditingText({ value, size = 'sm', onSubmit, loading }: {
 
 }
 
-function CredentialEntry({ modus, credential, idx }: {
+function CredentialEntry({ modus, credential, idx, onRemoval }: {
     modus: "list" | "table"
     credential: graphql.Credential
     idx: number
+    onRemoval: (e: React.SyntheticEvent) => Promise<void>
 }) {
     const { t } = useTranslation();
     const [updateCredential, { loading }] = useMutation(UPDATE_GQL);
     const { setFlashMessage } = useOutletContext<ContextType>()
 
     const actions = <ButtonGroup size="sm">
-        <Button disabled variant="outline-danger"><i className="bi bi-trash" /></Button>
+        <Button variant="outline-danger" onClick={onRemoval}><i className="bi bi-trash" /></Button>
     </ButtonGroup>;
 
     const handleSubmit = async (value?: string) => {
@@ -162,20 +169,34 @@ export default function Credentials() {
     });
     const [initCredential, { loading: loadingInitPasskey }] = useMutation(INIT_CREDENTIAL_QGL);
     const [addCredential, { loading: loadingAddPasskey }] = useMutation(ADD_CREDENTIAL_QGL);
+    const [removeCredential, { loading: loadingRemoveCredential }] = useMutation(REMOVE_CREDENTIAL_QGL);
 
 
-    if (loading) return <Spinner animation="border" />;
+    if (loading || loadingRemoveCredential) return <Spinner animation="border" />;
     if (!data?.credentials) return t("You are logged-out!");
 
-    const actions = <ButtonGroup size="sm">
-        <Button disabled variant="outline-secondary" size="sm"><i className="bi bi-pencil" /></Button>
-        <Button disabled variant="outline-danger"><i className="bi bi-trash" /></Button>
-    </ButtonGroup>;
+    const RemoveCredentialHandler = (id: string) => (async (e: React.SyntheticEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-    const credList = data?.credentials!.map((cred, idx) => <CredentialEntry modus="list" credential={cred as graphql.Credential} idx={idx} key={cred!.id} />);
+        try {
+            const result = await removeCredential({
+                variables: {
+                    id: id
+                }
+            })
+            if (!!result?.data?.removeCredential) {
+                refetch();
+            }
+        } catch (error) {
+            setFlashMessage({ msg: (error as ApolloError).message, type: "danger" });
+        }
+    })
+
+    const credList = data?.credentials!.map((cred, idx) => <CredentialEntry modus="list" credential={cred as graphql.Credential} idx={idx} key={cred!.id} onRemoval={RemoveCredentialHandler(cred!.id)} />);
 
     const credTable = data?.credentials!.map(
-        (cred, idx) => <CredentialEntry modus="table" credential={cred as graphql.Credential} idx={idx} key={cred!.id} />
+        (cred, idx) => <CredentialEntry modus="table" credential={cred as graphql.Credential} idx={idx} key={cred!.id} onRemoval={RemoveCredentialHandler(cred!.id)} />
 
     );
 
@@ -230,7 +251,11 @@ export default function Credentials() {
                     <tbody>{credTable}</tbody>
                 </Table>
             </Col></Row>
-            <Row><Col><Button onClick={handleAddCredential}>Add</Button></Col></Row>
+            <Row><Col>
+                {loadingInitPasskey || loadingAddPasskey
+                    ? <Spinner animation="border" />
+                    : <Button onClick={handleAddCredential}>Add</Button>}
+            </Col></Row>
         </>
     )
 }

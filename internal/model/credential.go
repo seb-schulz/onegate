@@ -24,3 +24,10 @@ func CredentialByUserID(db *gorm.DB, userID int, id string) (*Credential, error)
 	}
 	return &cred, nil
 }
+
+func CountCredentialByUserID(db *gorm.DB, userID int) int {
+	var c int64
+	db.Model(&Credential{}).Where("user_id = ?", userID).Count(&c)
+	return int(c)
+
+}

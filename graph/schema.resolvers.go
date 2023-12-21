@@ -122,7 +122,7 @@ func (r *mutationResolver) RemoveCredential(ctx context.Context, id string) (boo
 		return false, fmt.Errorf("user not logged in")
 	}
 
-	if len(session.User.Credentials) <= 1 {
+	if dbmodel.CountCredentialByUserID(r.DB, *session.UserID) <= 1 {
 		return false, fmt.Errorf("cannot delete last remaining credential")
 	}
 
