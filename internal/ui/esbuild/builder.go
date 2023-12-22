@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/evanw/esbuild/pkg/api"
+	"github.com/seb-schulz/onegate/internal/config"
 )
 
 func fileName() string {
@@ -18,20 +19,8 @@ func fileName() string {
 }
 
 func main() {
-	result := api.Build(api.BuildOptions{
-		EntryPoints:       []string{"src/app.tsx"},
-		Bundle:            true,
-		AbsWorkingDir:     path.Join(path.Dir(fileName()), "../_client"),
-		Outdir:            path.Join(path.Dir(fileName()), "../_build/static"),
-		Write:             true,
-		MinifyWhitespace:  true,
-		MinifyIdentifiers: true,
-		MinifySyntax:      true,
-		Loader: map[string]api.Loader{
-			".woff2": api.LoaderDataURL,
-			".woff":  api.LoaderDataURL,
-		},
-	})
+	result := api.Build(config.DefaultBuildOptions(path.Join(path.Dir(fileName()), "../_client"), path.Join(path.Dir(fileName()), "../_build/static"), true))
+
 	if len(result.Errors) != 0 {
 		for _, err := range result.Errors {
 			log.Println(err)

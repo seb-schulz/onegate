@@ -11,6 +11,7 @@ import (
 	"runtime"
 
 	"github.com/evanw/esbuild/pkg/api"
+	"github.com/seb-schulz/onegate/internal/config"
 )
 
 func fileName() string {
@@ -26,21 +27,7 @@ func outdir() string {
 }
 
 func init() {
-	ctx, err := api.Context(api.BuildOptions{
-		EntryPoints:       []string{"src/app.tsx"},
-		Bundle:            true,
-		AbsWorkingDir:     path.Join(path.Dir(fileName()), "_client"),
-		Outdir:            path.Join(outdir(), "static"),
-		Write:             true,
-		MinifyWhitespace:  false,
-		MinifyIdentifiers: false,
-		MinifySyntax:      false,
-		Sourcemap:         api.SourceMapInline,
-		Loader: map[string]api.Loader{
-			".woff2": api.LoaderDataURL,
-			".woff":  api.LoaderDataURL,
-		},
-	})
+	ctx, err := api.Context(config.DefaultBuildOptions(path.Join(path.Dir(fileName()), "_client"), path.Join(outdir(), "static"), false))
 	if err != nil {
 		log.Fatalln("Cannot init esbuild watch: ", err)
 	}
