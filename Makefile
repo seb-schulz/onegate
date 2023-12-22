@@ -2,7 +2,7 @@ UI_BASEDIR := internal/ui
 
 .PHONY: build
 build: generate
-	go build -v -tags embedded,production ./cmd/onegate
+	go build -v -tags embedded,production ./
 
 .PHONY: generate
 generate:

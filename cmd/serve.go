@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -10,13 +10,17 @@ import (
 	"github.com/seb-schulz/onegate/graph"
 	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/middleware"
-	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/ui"
+	"github.com/spf13/cobra"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-func main() {
+func init() {
+	rootCmd.AddCommand(serveCmd)
+}
+
+func runServeCmd(cmd *cobra.Command, args []string) {
 	db, err := gorm.Open(mysql.Open(config.Default.DB.Dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
@@ -24,15 +28,6 @@ func main() {
 
 	if config.Default.DB.Debug {
 		db = db.Debug()
-	}
-
-	if err := db.AutoMigrate(model.User{}, model.Credential{}, model.Session{}, model.AuthSession{}); err != nil {
-		log.Fatalln("Migration failed: ", err)
-	}
-
-	// Manual migration was added because tags generated multiple indexes
-	if !db.Migrator().HasIndex(&model.User{}, "idx_user_authn_id_uniq") {
-		db.Exec("CREATE UNIQUE INDEX idx_user_authn_id_uniq ON users(authn_id)")
 	}
 
 	http.Handle("/favicon.ico", ui.PublicFile())
@@ -66,4 +61,10 @@ func main() {
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalln(err)
 	}
+}
+
+var serveCmd = &cobra.Command{
+	Use:   "serve",
+	Short: "Run server",
+	Run:   runServeCmd,
 }
