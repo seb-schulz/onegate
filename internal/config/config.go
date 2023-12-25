@@ -25,7 +25,9 @@ db:
   dsn: "NOT_CONFIGURED_YET"
   debug: false
 httpPort: 9000
-SessionKey: "NOT_CONFIGURED_YET"
+session:
+  key: "NOT_CONFIGURED_YET"
+  active_for: 2h
 `)
 
 type Config struct {
@@ -44,8 +46,11 @@ type Config struct {
 		Dsn   string
 		Debug bool
 	}
-	HttpPort   string
-	SessionKey string
+	HttpPort string
+	Session  struct {
+		Key       string
+		ActiveFor time.Duration
+	}
 }
 
 var Default Config

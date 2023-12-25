@@ -210,6 +210,21 @@ func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool
 	return true, nil
 }
 
+// RemoveSession is the resolver for the removeSession field.
+func (r *mutationResolver) RemoveSession(ctx context.Context, id string) (bool, error) {
+	session := mustSessionFromContext(ctx)
+
+	if session.UserID == nil {
+		return false, fmt.Errorf("user not logged in")
+	}
+
+	if err := r.DB.Transaction(dbmodel.DeleteSessionByUserID(*session.UserID, id)); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*dbmodel.User, error) {
 	session := mustSessionFromContext(ctx)
@@ -238,6 +253,22 @@ func (r *queryResolver) Credentials(ctx context.Context) ([]*dbmodel.Credential,
 	return creds, nil
 }
 
+// Sessions is the resolver for the sessions field.
+func (r *queryResolver) Sessions(ctx context.Context) ([]*dbmodel.Session, error) {
+	session := mustSessionFromContext(ctx)
+
+	if session.UserID == nil {
+		return nil, fmt.Errorf("user not logged in")
+	}
+
+	return dbmodel.AllSessionByUserID(r.DB, *session.UserID)
+}
+
+// ID is the resolver for the id field.
+func (r *sessionResolver) ID(ctx context.Context, obj *dbmodel.Session) (string, error) {
+	return fmt.Sprintf("%d", obj.ID), nil
+}
+
 // Credential returns CredentialResolver implementation.
 func (r *Resolver) Credential() CredentialResolver { return &credentialResolver{r} }
 
@@ -247,6 +278,10 @@ func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// Session returns SessionResolver implementation.
+func (r *Resolver) Session() SessionResolver { return &sessionResolver{r} }
+
 type credentialResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type sessionResolver struct{ *Resolver }

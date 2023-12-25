@@ -87,6 +87,8 @@ models:
       - github.com/99designs/gqlgen/graphql.Int32
   User:
     model: github.com/seb-schulz/onegate/internal/model.User
+  Session:
+    model: github.com/seb-schulz/onegate/internal/model.Session
   Credential:
     model: github.com/seb-schulz/onegate/internal/model.Credential
   CredentialCreation:

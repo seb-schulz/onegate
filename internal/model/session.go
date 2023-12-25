@@ -8,6 +8,7 @@ import (
 	"hash"
 	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/seb-schulz/onegate/internal/config"
 	"gorm.io/gorm"
@@ -15,7 +16,7 @@ import (
 
 type Session struct {
 	gorm.Model
-	UserID *int
+	UserID *uint
 	User   *User
 }
 
@@ -29,7 +30,7 @@ func nonce() []byte {
 }
 
 func newHMAC() hash.Hash {
-	return hmac.New(sha256.New, []byte(config.Default.SessionKey))
+	return hmac.New(sha256.New, []byte(config.Default.Session.Key))
 }
 
 func generateToken(id uint, nonce []byte) string {
@@ -48,6 +49,10 @@ func (s Session) Token() string {
 
 func (s Session) String() string {
 	return fmt.Sprintf("Session(id=%d, userID=%v)", s.ID, s.UserID)
+}
+
+func (s Session) IsActive() bool {
+	return time.Since(s.UpdatedAt) <= config.Default.Session.ActiveFor
 }
 
 func getSessionIDByToken(token string) (uint, error) {
@@ -89,4 +94,22 @@ func FirstSessionByToken(db *gorm.DB, token string, session *Session) error {
 
 func CreateSession(db *gorm.DB, session *Session) {
 	db.Create(session)
+}
+
+func AllSessionByUserID(db *gorm.DB, userID uint) ([]*Session, error) {
+	sessions := []*Session{}
+	r := db.Where("user_id = ?", userID).Find(&sessions)
+
+	return sessions, r.Error
+}
+
+func DeleteSessionByUserID(userID uint, id string) func(tx *gorm.DB) error {
+	return func(tx *gorm.DB) error {
+		s := Session{}
+		if result := tx.Where("user_id = ?", userID).First(&s, id); result.Error != nil {
+			return result.Error
+		}
+		tx.Delete(&s)
+		return nil
+	}
 }

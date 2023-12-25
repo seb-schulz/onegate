@@ -36,6 +36,7 @@ export type Mutation = {
   createUser: Scalars['CredentialCreation']['output'];
   initCredential: Scalars['CredentialCreation']['output'];
   removeCredential: Scalars['Boolean']['output'];
+  removeSession: Scalars['Boolean']['output'];
   updateCredential: Credential;
   validateLogin: Scalars['Boolean']['output'];
 };
@@ -52,6 +53,11 @@ export type MutationCreateUserArgs = {
 
 
 export type MutationRemoveCredentialArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationRemoveSessionArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -76,12 +82,21 @@ export type Query = {
   __typename?: 'Query';
   credentials?: Maybe<Array<Maybe<Credential>>>;
   me?: Maybe<User>;
+  sessions?: Maybe<Array<Maybe<Session>>>;
 };
 
 export type RelyingParty = {
   __typename?: 'RelyingParty';
   id: Scalars['String']['output'];
   name: Scalars['String']['output'];
+};
+
+export type Session = {
+  __typename?: 'Session';
+  createdAt: Scalars['Time']['output'];
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  updatedAt: Scalars['Time']['output'];
 };
 
 export type User = {

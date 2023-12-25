@@ -31,9 +31,17 @@ type User {
 
 }
 
+type Session {
+  id: ID!
+  createdAt: Time!
+  updatedAt: Time!
+  isActive: Boolean!
+}
+
 type Query {
   me: User
   credentials: [Credential]
+  sessions: [Session]
 }
 
 type Mutation {
@@ -44,4 +52,5 @@ type Mutation {
  removeCredential(id: ID!): Boolean!
  beginLogin: CredentialAssertion!
  validateLogin(body: CredentialRequestResponse!): Boolean!
+ removeSession(id: ID!): Boolean!
 }

@@ -10,13 +10,13 @@ import (
 
 type Credential struct {
 	gorm.Model
-	UserID      int
+	UserID      uint
 	User        User
 	Description string
 	Data        webauthn.Credential `gorm:"serializer:json"`
 }
 
-func CredentialByUserID(db *gorm.DB, userID int, id string) (*Credential, error) {
+func CredentialByUserID(db *gorm.DB, userID uint, id string) (*Credential, error) {
 	cred := Credential{}
 	r := db.Where("user_id = ? AND id = ?", userID, id).First(&cred)
 	if errors.Is(r.Error, gorm.ErrRecordNotFound) {
@@ -25,7 +25,7 @@ func CredentialByUserID(db *gorm.DB, userID int, id string) (*Credential, error)
 	return &cred, nil
 }
 
-func CountCredentialByUserID(db *gorm.DB, userID int) int {
+func CountCredentialByUserID(db *gorm.DB, userID uint) int {
 	var c int64
 	db.Model(&Credential{}).Where("user_id = ?", userID).Count(&c)
 	return int(c)
