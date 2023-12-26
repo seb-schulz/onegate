@@ -52,6 +52,14 @@ export default function Root() {
                             >
                                 {t("Credentials")}
                             </NavLink>
+                            <NavLink
+                                to="/sessions"
+                                className={({ isActive, isPending }) =>
+                                    [isPending ? "pending" : isActive ? "active" : "", "nav-link"].join(" ").trim()
+                                }
+                            >
+                                {t("Sessions")}
+                            </NavLink>
                         </Nav>
                     </Navbar.Collapse>
                     <NavbarLogin onError={handleError} onSuccess={() => setFlashMessage({ msg: t("Login succeeded"), type: "success" })} />

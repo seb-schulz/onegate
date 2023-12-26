@@ -10,6 +10,7 @@ import ErrorPage from './error-page';
 import Root from './routes/root';
 import Index from './routes';
 import Credentials from './routes/credentials';
+import Sessions from './routes/sessions';
 
 i18n
     .use(initReactI18next) // passes i18n down to react-i18next
@@ -35,7 +36,8 @@ const router = createBrowserRouter([
         errorElement: <ErrorPage />,
         children: [
             { index: true, element: <Index /> },
-            { path: "credentials", element: <Credentials /> }
+            { path: "credentials", element: <Credentials /> },
+            { path: "sessions", element: <Sessions /> }
         ]
     },
 ]);
