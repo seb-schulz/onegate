@@ -23,7 +23,7 @@ const documents = {
     "\nmutation initCredential {\n    initCredential\n}\n": types.InitCredentialDocument,
     "\nmutation removeCredential($id: ID!) {\n    removeCredential(id: $id)\n}\n": types.RemoveCredentialDocument,
     "\nquery meIndex {\n  me {\n    displayName\n    name\n  }\n}": types.MeIndexDocument,
-    "\nquery sessions {\n  sessions {\n    id\n    createdAt\n    updatedAt\n    isActive\n  }\n}\n": types.SessionsDocument,
+    "\nquery sessions {\n  sessions {\n    id\n    createdAt\n    updatedAt\n    isActive\n    isCurrent\n  }\n}\n": types.SessionsDocument,
     "\nmutation removeSession($id: ID!) {\n  removeSession(id: $id)\n}\n": types.RemoveSessionDocument,
 };
 
@@ -84,7 +84,7 @@ export function gql(source: "\nquery meIndex {\n  me {\n    displayName\n    nam
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "\nquery sessions {\n  sessions {\n    id\n    createdAt\n    updatedAt\n    isActive\n  }\n}\n"): (typeof documents)["\nquery sessions {\n  sessions {\n    id\n    createdAt\n    updatedAt\n    isActive\n  }\n}\n"];
+export function gql(source: "\nquery sessions {\n  sessions {\n    id\n    createdAt\n    updatedAt\n    isActive\n    isCurrent\n  }\n}\n"): (typeof documents)["\nquery sessions {\n  sessions {\n    id\n    createdAt\n    updatedAt\n    isActive\n    isCurrent\n  }\n}\n"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

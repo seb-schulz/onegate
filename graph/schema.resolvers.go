@@ -269,6 +269,12 @@ func (r *sessionResolver) ID(ctx context.Context, obj *dbmodel.Session) (string,
 	return fmt.Sprintf("%d", obj.ID), nil
 }
 
+// IsCurrent is the resolver for the isCurrent field.
+func (r *sessionResolver) IsCurrent(ctx context.Context, obj *dbmodel.Session) (bool, error) {
+	session := mustSessionFromContext(ctx)
+	return obj.ID == session.ID, nil
+}
+
 // Credential returns CredentialResolver implementation.
 func (r *Resolver) Credential() CredentialResolver { return &credentialResolver{r} }
 

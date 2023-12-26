@@ -36,6 +36,7 @@ type Session {
   createdAt: Time!
   updatedAt: Time!
   isActive: Boolean!
+  isCurrent: Boolean!
 }
 
 type Query {

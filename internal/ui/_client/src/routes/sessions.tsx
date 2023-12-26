@@ -15,6 +15,7 @@ query sessions {
     createdAt
     updatedAt
     isActive
+    isCurrent
   }
 }
 `)
@@ -38,8 +39,14 @@ function Entry({ variant, item, idx, onRemoval }: {
 
     if (variant === "list") {
         return (
-            <ListGroup.Item variant={item.isActive ? '' : 'secondary'}>
-                <Row><big>{description}</big></Row>
+            <ListGroup.Item>
+                <Row>
+                    <big>
+                        {description}
+                        {item.isActive ? '' : <i className="bi bi-exclamation-triangle text-warning ms-2"></i>}
+                        {item.isCurrent ? <i className="bi bi-check-square text-primary ms-2"></i> : ''}
+                    </big>
+                </Row>
                 <Row>
                     <Col sm={true}>
                         <Stack direction="horizontal" gap={1}>
@@ -64,7 +71,11 @@ function Entry({ variant, item, idx, onRemoval }: {
     } else if (variant === "table") {
         return (
             <tr>
-                <td className={item.isActive ? '' : 'bg-secondary-subtle'}>{description}</td>
+                <td>
+                    {description}
+                    {item.isActive ? '' : <i className="bi bi-exclamation-triangle text-warning ms-2"></i>}
+                    {item.isCurrent ? <i className="bi bi-check-square text-primary ms-2"></i> : ''}
+                </td>
                 <td><Moment fromNow withTitle>{item.createdAt}</Moment></td>
                 <td><Moment fromNow withTitle>{item.updatedAt}</Moment></td>
                 <td className="d-flex justify-content-end">
