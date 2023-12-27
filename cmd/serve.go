@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(serveCmd)
+	RootCmd.AddCommand(serveCmd)
 }
 
 func runServeCmd(cmd *cobra.Command, args []string) {

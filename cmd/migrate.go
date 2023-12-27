@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(migrateCmd)
+	RootCmd.AddCommand(migrateCmd)
 }
 
 var migrateCmd = &cobra.Command{
