@@ -21,6 +21,7 @@ type RelyingParty {
 type Credential {
   id: ID!
   description: String!,
+  lastLogin: Time,
   createdAt: Time!
   updatedAt: Time!
 }

@@ -197,7 +197,9 @@ func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool
 	}
 
 	if err := r.DB.Transaction(func(tx *gorm.DB) error {
+		now := time.Now()
 		db_cred.Data = *cred
+		db_cred.LastLogin = &now
 		session.User = &user
 		tx.Save(&db_cred)
 		tx.Save(&session)

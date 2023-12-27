@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"gorm.io/gorm"
@@ -13,6 +14,7 @@ type Credential struct {
 	UserID      uint
 	User        User
 	Description string
+	LastLogin   *time.Time
 	Data        webauthn.Credential `gorm:"serializer:json"`
 }
 

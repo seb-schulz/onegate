@@ -16,6 +16,7 @@ query credentials {
     description
     createdAt
     updatedAt
+    lastLogin
   }
 }`);
 
@@ -120,10 +121,20 @@ function CredentialEntry({ modus, credential, idx, onRemoval }: {
 
     const description = !!credential.description ? credential.description : "Credential " + (idx + 1)
 
+    const lastLogin = !!credential?.lastLogin ? <Moment fromNow withTitle>{credential.lastLogin}</Moment> : t('not seen');
+
     if (modus === "list") {
         return (
             <ListGroup.Item>
                 <Row className="mb-2"><InlineEditingText value={description} onSubmit={handleSubmit} loading={loading} size="lg" /></Row>
+                <Row>
+                    <Col sm={true}>
+                        <Stack direction="horizontal" gap={1}>
+                            <strong>{t("Last login")}</strong>
+                            {lastLogin}
+                        </Stack>
+                    </Col>
+                </Row>
                 <Row>
                     <Col sm={true}>
                         <Stack direction="horizontal" gap={1}>
@@ -149,6 +160,7 @@ function CredentialEntry({ modus, credential, idx, onRemoval }: {
                 <td>
                     <InlineEditingText value={description} onSubmit={handleSubmit} loading={loading} />
                 </td>
+                <td>{lastLogin}</td>
                 <td><Moment fromNow withTitle>{credential!.createdAt}</Moment></td>
                 <td><Moment fromNow withTitle>{credential!.updatedAt}</Moment></td>
                 <td className="d-flex justify-content-end">
@@ -243,6 +255,7 @@ export default function Credentials() {
                     <thead>
                         <tr>
                             <th>{t("Description")}</th>
+                            <th>{t("Last login")}</th>
                             <th>{t("Created")}</th>
                             <th>{t("Updated")}</th>
                             <th></th>

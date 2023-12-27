@@ -18,7 +18,7 @@ const documents = {
     "\nquery meNavbar {\n  me {\n    displayName\n    name\n  }\n}": types.MeNavbarDocument,
     "\nmutation createUser($name: String!) {\n  createUser(name: $name)\n}\n": types.CreateUserDocument,
     "\nmutation addCredential($body: CredentialCreationResponse!) {\n    addCredential(body: $body)\n}\n": types.AddCredentialDocument,
-    "\nquery credentials {\n  credentials {\n    id\n    description\n    createdAt\n    updatedAt\n  }\n}": types.CredentialsDocument,
+    "\nquery credentials {\n  credentials {\n    id\n    description\n    createdAt\n    updatedAt\n    lastLogin\n  }\n}": types.CredentialsDocument,
     "\nmutation updateCredential($id: ID!, $description: String) {\n  updateCredential(id: $id, description: $description) {\n    id\n  }\n}": types.UpdateCredentialDocument,
     "\nmutation initCredential {\n    initCredential\n}\n": types.InitCredentialDocument,
     "\nmutation removeCredential($id: ID!) {\n    removeCredential(id: $id)\n}\n": types.RemoveCredentialDocument,
@@ -64,7 +64,7 @@ export function gql(source: "\nmutation addCredential($body: CredentialCreationR
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "\nquery credentials {\n  credentials {\n    id\n    description\n    createdAt\n    updatedAt\n  }\n}"): (typeof documents)["\nquery credentials {\n  credentials {\n    id\n    description\n    createdAt\n    updatedAt\n  }\n}"];
+export function gql(source: "\nquery credentials {\n  credentials {\n    id\n    description\n    createdAt\n    updatedAt\n    lastLogin\n  }\n}"): (typeof documents)["\nquery credentials {\n  credentials {\n    id\n    description\n    createdAt\n    updatedAt\n    lastLogin\n  }\n}"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

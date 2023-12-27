@@ -56,6 +56,7 @@ type ComplexityRoot struct {
 		CreatedAt   func(childComplexity int) int
 		Description func(childComplexity int) int
 		ID          func(childComplexity int) int
+		LastLogin   func(childComplexity int) int
 		UpdatedAt   func(childComplexity int) int
 	}
 
@@ -163,6 +164,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Credential.ID(childComplexity), true
+
+	case "Credential.lastLogin":
+		if e.complexity.Credential.LastLogin == nil {
+			break
+		}
+
+		return e.complexity.Credential.LastLogin(childComplexity), true
 
 	case "Credential.updatedAt":
 		if e.complexity.Credential.UpdatedAt == nil {
@@ -718,6 +726,47 @@ func (ec *executionContext) fieldContext_Credential_description(ctx context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Credential_lastLogin(ctx context.Context, field graphql.CollectedField, obj *model.Credential) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Credential_lastLogin(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastLogin, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Credential_lastLogin(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Credential",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Credential_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Credential) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Credential_createdAt(ctx, field)
 	if err != nil {
@@ -1003,6 +1052,8 @@ func (ec *executionContext) fieldContext_Mutation_updateCredential(ctx context.C
 				return ec.fieldContext_Credential_id(ctx, field)
 			case "description":
 				return ec.fieldContext_Credential_description(ctx, field)
+			case "lastLogin":
+				return ec.fieldContext_Credential_lastLogin(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Credential_createdAt(ctx, field)
 			case "updatedAt":
@@ -1409,6 +1460,8 @@ func (ec *executionContext) fieldContext_Query_credentials(ctx context.Context, 
 				return ec.fieldContext_Credential_id(ctx, field)
 			case "description":
 				return ec.fieldContext_Credential_description(ctx, field)
+			case "lastLogin":
+				return ec.fieldContext_Credential_lastLogin(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Credential_createdAt(ctx, field)
 			case "updatedAt":
@@ -3831,6 +3884,8 @@ func (ec *executionContext) _Credential(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "lastLogin":
+			out.Values[i] = ec._Credential_lastLogin(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._Credential_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5227,6 +5282,22 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	res := graphql.MarshalString(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalTime(*v)
 	return res
 }
 
