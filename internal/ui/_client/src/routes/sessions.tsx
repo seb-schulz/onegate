@@ -35,7 +35,7 @@ function Entry({ variant, item, idx, onRemoval }: {
     const { t } = useTranslation();
 
     const description = t("Session {{ n }}", { n: idx + 1 })
-    const delAction = <Button variant="outline-danger" onClick={onRemoval}><i className="bi bi-trash" /></Button>
+    const delAction = <Button variant="outline-danger" onClick={onRemoval} disabled={item.isCurrent}><i className="bi bi-trash" /></Button>
 
     if (variant === "list") {
         return (
