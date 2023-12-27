@@ -15,9 +15,9 @@ var defaultYaml = []byte(`
 jwt:
   header: x-jwt-token
   secret: "NOT_CONFIGURED_YET"
-  expires_in: 1h
-  valid_methods: ["HS256", "HS384", "HS512"]
-RelyingParty:
+  expiresIn: 1h
+  validMethods: ["HS256", "HS384", "HS512"]
+relyingParty:
   name: "NOT_CONFIGURED_YET"
   id: "NOT_CONFIGURED_YET"
   origins: []
@@ -27,7 +27,7 @@ db:
 httpPort: 9000
 session:
   key: "NOT_CONFIGURED_YET"
-  active_for: 2h
+  activeFor: 2h
 `)
 
 type Config struct {
