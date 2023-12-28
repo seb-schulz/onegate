@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"gorm.io/gorm"
@@ -40,7 +39,24 @@ func (u User) WebAuthnIcon() string {
 	return ""
 }
 
-func GetUserByRawID(rawID, userHandle []byte) (webauthn.User, error) {
-	log.Println("GetUserByRawID", rawID, userHandle)
-	return nil, fmt.Errorf("user not found")
+func CreateUser(user *User, session *Session) func(tx *gorm.DB) error {
+	return func(tx *gorm.DB) error {
+		if user == nil || session == nil {
+			return fmt.Errorf("user and session must be provided")
+		}
+
+		if session.UserID != nil {
+			return fmt.Errorf("session assigned to user")
+		}
+
+		if r := tx.Create(&user); r.Error != nil {
+			return r.Error
+		}
+
+		session.User = user
+		if r := tx.Save(&session); r.Error != nil {
+			return r.Error
+		}
+		return nil
+	}
 }

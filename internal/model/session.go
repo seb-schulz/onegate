@@ -48,7 +48,16 @@ func (s Session) Token() string {
 }
 
 func (s Session) String() string {
-	return fmt.Sprintf("Session(id=%d, userID=%v)", s.ID, s.UserID)
+	uID := "nil"
+	if s.UserID != nil {
+		uID = fmt.Sprintf("%v", *s.UserID)
+	}
+
+	u := "nil"
+	if s.User != nil {
+		u = fmt.Sprintf("User{ID: %v}", s.User.ID)
+	}
+	return fmt.Sprintf("Session{ID: %d, UserID: %v, User: %v)", s.ID, uID, u)
 }
 
 func (s Session) IsActive() bool {

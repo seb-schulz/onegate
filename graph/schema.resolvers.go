@@ -32,11 +32,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protoc
 	}
 
 	user := dbmodel.User{Name: name}
-	if err := r.DB.Transaction(func(tx *gorm.DB) error {
-		tx.Create(&user)
-		tx.Model(&session).Update("user_id", user.ID)
-		return nil
-	}); err != nil {
+	if err := r.DB.Transaction(dbmodel.CreateUser(&user, session)); err != nil {
 		panic(err)
 	}
 
