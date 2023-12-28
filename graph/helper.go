@@ -36,7 +36,6 @@ func (r *mutationResolver) beginRegistration(user webauthn.User, sessionID uint)
 	if err != nil {
 		return nil, err
 	}
-	r.DB.Create(&model.AuthSession{SessionID: sessionID, Data: *webauthn_session})
-
+	model.CreateAuthSession(r.DB, sessionID, *webauthn_session)
 	return options, nil
 }

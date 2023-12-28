@@ -63,17 +63,16 @@ func (r *mutationResolver) AddCredential(ctx context.Context, body string) (bool
 		return false, fmt.Errorf("no user logged in")
 	}
 
-	auth_session := dbmodel.AuthSession{SessionID: session.ID}
-	if result := r.DB.Order("updated_at DESC").First(&auth_session, "session_id = ?", session.ID); result.Error != nil {
-		return false, fmt.Errorf("no registration session found")
+	auth_session, err := dbmodel.FirstAuthSessionBySession(r.DB, session.ID)
+	if err != nil {
+		return false, fmt.Errorf("registration failed")
 	}
-	webauthn_session := auth_session.Data
 
 	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(strings.NewReader(body))
 	if err != nil {
 		return false, err
 	}
-	cred, err := r.WebAuthn.CreateCredential(session.User, webauthn_session, parsedResponse)
+	cred, err := r.WebAuthn.CreateCredential(session.User, auth_session.Value(), parsedResponse)
 	if err != nil {
 		return false, err
 	}
@@ -149,7 +148,7 @@ func (r *mutationResolver) BeginLogin(ctx context.Context) (*protocol.Credential
 	if err != nil {
 		return nil, err
 	}
-	r.DB.Create(&dbmodel.AuthSession{SessionID: session.ID, Data: *webauthn_session})
+	dbmodel.CreateAuthSession(r.DB, session.ID, *webauthn_session)
 
 	return cred, nil
 }
@@ -157,18 +156,16 @@ func (r *mutationResolver) BeginLogin(ctx context.Context) (*protocol.Credential
 // ValidateLogin is the resolver for the validateLogin field.
 func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool, error) {
 	session := mustSessionFromContext(ctx)
-
 	time.Sleep(2 * time.Second)
 
 	if session.UserID != nil {
 		return false, fmt.Errorf("user is logged-in")
 	}
 
-	auth_session := dbmodel.AuthSession{SessionID: session.ID}
-	if result := r.DB.Order("updated_at DESC").First(&auth_session, "session_id = ?", session.ID); result.Error != nil {
+	auth_session, err := dbmodel.FirstAuthSessionBySession(r.DB, session.ID)
+	if err != nil {
 		return false, fmt.Errorf("login failed")
 	}
-	webauthn_session := auth_session.Data
 
 	parsedResponse, err := protocol.ParseCredentialRequestResponseBody(strings.NewReader(body))
 	if err != nil {
@@ -191,7 +188,7 @@ func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool
 		}
 
 		return nil, fmt.Errorf("login failed")
-	}, webauthn_session, parsedResponse)
+	}, auth_session.Value(), parsedResponse)
 	if err != nil {
 		return false, fmt.Errorf("login failed")
 	}
