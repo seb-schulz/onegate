@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/seb-schulz/onegate/graph"
 	"github.com/seb-schulz/onegate/internal/config"
@@ -30,17 +31,6 @@ func runServeCmd(cmd *cobra.Command, args []string) {
 		db = db.Debug()
 	}
 
-	http.Handle("/favicon.ico", ui.PublicFile())
-	http.Handle("/robots.txt", ui.PublicFile())
-
-	sessionMiddleware := middleware.SessionMiddleware(db)
-
-	http.Handle("/", sessionMiddleware(ui.Template("index.html.tmpl", func() any {
-		return map[string]any{}
-	})))
-
-	http.Handle("/static/", ui.StaticFiles())
-
 	webAuthn, err := webauthn.New(&webauthn.Config{
 		RPDisplayName: config.Default.RelyingParty.Name,
 		RPID:          config.Default.RelyingParty.ID,
@@ -50,15 +40,28 @@ func runServeCmd(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 	}
 
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db, WebAuthn: webAuthn}}))
-	http.Handle("/query", sessionMiddleware(srv))
-	// http.Handle("/query", srv)
+	r := chi.NewRouter()
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.SessionMiddleware(db))
+		r.Handle("/", ui.Template("index.html.tmpl", func() any {
+			return map[string]any{}
+		}))
 
-	addGraphQLPlayground()
+		srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db, WebAuthn: webAuthn}}))
+
+		r.Handle("/query", srv)
+		addGraphQLPlayground(r)
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Handle("/favicon.ico", ui.PublicFile())
+		r.Handle("/robots.txt", ui.PublicFile())
+		r.Mount("/static", ui.StaticFiles())
+	})
 
 	port := config.Default.HttpPort
 	fmt.Println("Server listening on port ", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalln(err)
 	}
 }

@@ -24,6 +24,7 @@ require (
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/go-chi/chi/v5 v5.0.11
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/go-webauthn/webauthn v0.9.4
 	github.com/golang-jwt/jwt/v5 v5.2.0 // indirect
