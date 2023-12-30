@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/mdp/qrterminal/v3"
 	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/middleware"
 	"github.com/seb-schulz/onegate/internal/model"
@@ -13,11 +14,15 @@ import (
 	"gorm.io/gorm"
 )
 
-var expiresIn time.Duration
+var (
+	expiresIn time.Duration
+	qrCode    bool
+)
 
 func init() {
 	userCmd.AddCommand(loginCmd)
 	loginCmd.Flags().DurationVarP(&expiresIn, "expires", "e", config.Default.UrlLogin.ExpiresIn, "Duration when URL will expire")
+	loginCmd.Flags().BoolVar(&qrCode, "qr", false, "Output link as QR code")
 }
 
 var loginCmd = &cobra.Command{
@@ -45,6 +50,11 @@ var loginCmd = &cobra.Command{
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Cannot generate URL: %v\n", err)
 		}
-		fmt.Printf("%v\n", url)
+
+		if qrCode {
+			qrterminal.GenerateHalfBlock(url.String(), qrterminal.L, os.Stdout)
+		} else {
+			fmt.Printf("%v\n", url)
+		}
 	},
 }
