@@ -28,6 +28,7 @@ func SessionMiddleware(db *gorm.DB) func(http.Handler) http.Handler {
 					Secure:   true,
 					HttpOnly: true,
 					SameSite: http.SameSiteStrictMode,
+					Path:     "/",
 				})
 			} else {
 				err := model.FirstSessionByToken(tx, cookie.Value, &session)

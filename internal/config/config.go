@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"encoding/base64"
+	"net/url"
 	"reflect"
 	"strings"
 	"time"
@@ -28,6 +29,11 @@ httpPort: 9000
 session:
   key: "NOT_CONFIGURED_YET"
   activeFor: 2h
+urlLogin:
+  key: ""
+  expiresIn: 30s
+  validMethods: ["HS256", "HS384", "HS512"]
+baseUrl: "http://localhost:9000"
 `)
 
 type Config struct {
@@ -51,6 +57,12 @@ type Config struct {
 		Key       string
 		ActiveFor time.Duration
 	}
+	UrlLogin struct {
+		Key          []byte
+		ExpiresIn    time.Duration
+		ValidMethods []string
+	}
+	BaseUrl url.URL
 }
 
 var Default Config
@@ -63,6 +75,8 @@ func init() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.Unmarshal(&Default, viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
+		base64StringToBytesHookFunc(),
+		stringToURLHookFunc(),
 		mapstructure.StringToTimeDurationHookFunc(),
 		mapstructure.StringToSliceHookFunc(","),
 		base64StringToStringHookFunc(),
@@ -84,6 +98,46 @@ func base64StringToStringHookFunc() mapstructure.DecodeHookFunc {
 		}
 
 		if result, err := base64.StdEncoding.DecodeString(data.(string)); err == nil {
+			return result, nil
+		}
+
+		return data, nil
+	}
+}
+
+func base64StringToBytesHookFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+		if t != reflect.TypeOf([]byte{}) {
+			return data, nil
+		}
+
+		if result, err := base64.StdEncoding.DecodeString(data.(string)); err == nil {
+			return result, nil
+		}
+
+		return data, nil
+	}
+}
+
+func stringToURLHookFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+		if t != reflect.TypeOf(url.URL{}) {
+			return data, nil
+		}
+
+		if result, err := url.Parse(data.(string)); err == nil {
 			return result, nil
 		}
 
