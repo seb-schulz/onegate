@@ -29,10 +29,10 @@ var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Provide login URL for user recovery",
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := gorm.Open(mysql.Open(config.Default.DB.Dsn), &gorm.Config{})
 		if err != nil {
-			panic("failed to connect database")
+			return fmt.Errorf(errDatabaseConnectionFormat, err)
 		}
 
 		if debug {
@@ -41,14 +41,12 @@ var loginCmd = &cobra.Command{
 
 		user := model.User{}
 		if r := db.Where("id = ?", args[0]).First(&user); r.Error != nil {
-			fmt.Fprintf(os.Stderr, "Cannot retrieve user: %v\n", r.Error)
-			os.Exit(1)
-			return
+			return fmt.Errorf(errRetrieveUserFormat, r.Error)
 		}
 
 		url, err := middleware.GetLoginUrl(user.ID, expiresIn)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Cannot generate URL: %v\n", err)
+			return fmt.Errorf("cannot generate URL: %v", err)
 		}
 
 		if qrCode {
@@ -56,5 +54,6 @@ var loginCmd = &cobra.Command{
 		} else {
 			fmt.Printf("%v\n", url)
 		}
+		return nil
 	},
 }

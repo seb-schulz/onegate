@@ -10,7 +10,7 @@ import (
 var RootCmd = &cobra.Command{
 	Use:   "onegate",
 	Short: "OneGate is a single sign on service",
-	Run:   runServeCmd,
+	RunE:  runServeCmd,
 }
 
 func Execute() {

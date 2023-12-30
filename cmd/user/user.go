@@ -5,6 +5,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	errDatabaseConnectionFormat = "failed to connect to database: %v"
+	errRetrieveUserFormat       = "cannot retrieve user: %v"
+)
+
 var (
 	debug bool
 )

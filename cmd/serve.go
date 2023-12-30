@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -22,10 +21,10 @@ func init() {
 	RootCmd.AddCommand(serveCmd)
 }
 
-func runServeCmd(cmd *cobra.Command, args []string) {
+func runServeCmd(cmd *cobra.Command, args []string) error {
 	db, err := gorm.Open(mysql.Open(config.Default.DB.Dsn), &gorm.Config{})
 	if err != nil {
-		panic("failed to connect database")
+		return fmt.Errorf("failed to connect database: %v", err)
 	}
 
 	if config.Default.DB.Debug {
@@ -38,7 +37,7 @@ func runServeCmd(cmd *cobra.Command, args []string) {
 		RPOrigins:     config.Default.RelyingParty.Origins,
 	})
 	if err != nil {
-		fmt.Println(err)
+		return fmt.Errorf("cannot configure WebAuth: %v", err)
 	}
 
 	r := chi.NewRouter()
@@ -67,12 +66,13 @@ func runServeCmd(cmd *cobra.Command, args []string) {
 	port := config.Default.HttpPort
 	fmt.Println("Server listening on port ", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatalln(err)
+		return fmt.Errorf("cannot run server: %v", err)
 	}
+	return nil
 }
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Run server",
-	Run:   runServeCmd,
+	RunE:  runServeCmd,
 }

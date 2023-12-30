@@ -20,10 +20,10 @@ func init() {
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all users",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := gorm.Open(mysql.Open(config.Default.DB.Dsn), &gorm.Config{})
 		if err != nil {
-			panic("failed to connect database")
+			return fmt.Errorf(errDatabaseConnectionFormat, err)
 		}
 
 		if debug {
@@ -32,7 +32,7 @@ var listCmd = &cobra.Command{
 
 		users := []model.User{}
 		if r := db.Unscoped().Find(&users); r.Error != nil {
-			fmt.Fprintf(os.Stderr, "Cannot retrieve users: %v\n", r.Error)
+			return fmt.Errorf(errRetrieveUserFormat, r.Error)
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
@@ -47,5 +47,6 @@ var listCmd = &cobra.Command{
 			fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%s\n", user.ID, user.Name, user.DisplayName, user.CreatedAt.Format(time.DateOnly), user.UpdatedAt.Format(time.DateOnly), deletedAtStr)
 		}
 		w.Flush()
+		return nil
 	},
 }
