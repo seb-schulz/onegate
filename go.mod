@@ -7,6 +7,7 @@ require (
 	github.com/evanw/esbuild v0.19.6
 	github.com/spf13/viper v1.16.0
 	github.com/vektah/gqlparser/v2 v2.5.10
+	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/gorm v1.25.4
 )
@@ -29,7 +30,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/go-webauthn/webauthn v0.9.4
-	github.com/golang-jwt/jwt/v5 v5.2.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect

@@ -22,19 +22,19 @@ func init() {
 }
 
 func runServeCmd(cmd *cobra.Command, args []string) error {
-	db, err := gorm.Open(mysql.Open(config.Default.DB.Dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(config.Config.DB.Dsn), &gorm.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to connect database: %v", err)
 	}
 
-	if config.Default.DB.Debug {
+	if config.Config.DB.Debug {
 		db = db.Debug()
 	}
 
 	webAuthn, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: config.Default.RelyingParty.Name,
-		RPID:          config.Default.RelyingParty.ID,
-		RPOrigins:     config.Default.RelyingParty.Origins,
+		RPDisplayName: config.Config.RelyingParty.Name,
+		RPID:          config.Config.RelyingParty.ID,
+		RPOrigins:     config.Config.RelyingParty.Origins,
 	})
 	if err != nil {
 		return fmt.Errorf("cannot configure WebAuth: %v", err)
@@ -63,7 +63,7 @@ func runServeCmd(cmd *cobra.Command, args []string) error {
 		r.Mount("/static", ui.StaticFiles())
 	})
 
-	port := config.Default.HttpPort
+	port := config.Config.HttpPort
 	fmt.Println("Server listening on port ", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		return fmt.Errorf("cannot run server: %v", err)

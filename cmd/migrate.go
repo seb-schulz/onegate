@@ -18,12 +18,12 @@ var migrateCmd = &cobra.Command{
 	Use:   "migrate",
 	Short: "Migrate database",
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := gorm.Open(mysql.Open(config.Default.DB.Dsn), &gorm.Config{})
+		db, err := gorm.Open(mysql.Open(config.Config.DB.Dsn), &gorm.Config{})
 		if err != nil {
 			panic("failed to connect database")
 		}
 
-		if config.Default.DB.Debug {
+		if config.Config.DB.Debug {
 			db = db.Debug()
 		}
 

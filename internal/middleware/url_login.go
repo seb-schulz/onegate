@@ -50,13 +50,13 @@ func (m loginClaims) UserID() (uint, error) {
 
 func parseToken(signedToken string) (*jwt.Token, error) {
 	return jwt.ParseWithClaims(signedToken, &loginClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return config.Default.UrlLogin.Key, nil
-	}, jwt.WithValidMethods(config.Default.JWT.ValidMethods), jwt.WithExpirationRequired(), jwt.WithLeeway(30*time.Second))
+		return config.Config.UrlLogin.Key, nil
+	}, jwt.WithValidMethods(config.Config.UrlLogin.ValidMethods), jwt.WithExpirationRequired(), jwt.WithLeeway(30*time.Second))
 }
 
 func LoginHandler(db *gorm.DB) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer http.Redirect(w, r, config.Default.BaseUrl.String(), http.StatusSeeOther)
+		defer http.Redirect(w, r, config.Config.BaseUrl.String(), http.StatusSeeOther)
 
 		signedToken := chi.URLParam(r, "token")
 		token, err := parseToken(signedToken)
@@ -105,11 +105,11 @@ func GetLoginUrl(userID uint, expiresIn time.Duration) (*url.URL, error) {
 		Subject:   fmt.Sprintf("%x", userID),
 	})
 
-	sigendToken, err := token.SignedString(config.Default.UrlLogin.Key)
+	sigendToken, err := token.SignedString(config.Config.UrlLogin.Key)
 	if err != nil {
 		return nil, err
 
 	}
 
-	return config.Default.BaseUrl.JoinPath("login", sigendToken), nil
+	return config.Config.BaseUrl.JoinPath("login", sigendToken), nil
 }

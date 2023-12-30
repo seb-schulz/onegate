@@ -21,7 +21,7 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all users",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := gorm.Open(mysql.Open(config.Default.DB.Dsn), &gorm.Config{})
+		db, err := gorm.Open(mysql.Open(config.Config.DB.Dsn), &gorm.Config{})
 		if err != nil {
 			return fmt.Errorf(errDatabaseConnectionFormat, err)
 		}

@@ -17,11 +17,11 @@ func parseUrl(url *url.URL) error {
 }
 
 func FuzzGetLoginUrl(f *testing.F) {
-	oldKey := config.Default.UrlLogin.Key
+	oldKey := config.Config.UrlLogin.Key
 	defer func() {
-		config.Default.UrlLogin.Key = oldKey
+		config.Config.UrlLogin.Key = oldKey
 	}()
-	config.Default.UrlLogin.Key = []byte(".test.")
+	config.Config.UrlLogin.Key = []byte(".test.")
 
 	for i := 0; i < 100; i++ {
 		f.Add(uint(rand.Int()))

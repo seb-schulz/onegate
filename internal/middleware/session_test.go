@@ -12,7 +12,7 @@ import (
 )
 
 func openDb() *gorm.DB {
-	db, err := gorm.Open(mysql.Open(config.Default.DB.Dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(config.Config.DB.Dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}

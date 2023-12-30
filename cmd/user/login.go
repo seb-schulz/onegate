@@ -21,7 +21,7 @@ var (
 
 func init() {
 	userCmd.AddCommand(loginCmd)
-	loginCmd.Flags().DurationVarP(&expiresIn, "expires", "e", config.Default.UrlLogin.ExpiresIn, "Duration when URL will expire")
+	loginCmd.Flags().DurationVarP(&expiresIn, "expires", "e", config.Config.UrlLogin.ExpiresIn, "Duration when URL will expire")
 	loginCmd.Flags().BoolVar(&qrCode, "qr", false, "Output link as QR code")
 }
 
@@ -30,7 +30,7 @@ var loginCmd = &cobra.Command{
 	Short: "Provide login URL for user recovery",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := gorm.Open(mysql.Open(config.Default.DB.Dsn), &gorm.Config{})
+		db, err := gorm.Open(mysql.Open(config.Config.DB.Dsn), &gorm.Config{})
 		if err != nil {
 			return fmt.Errorf(errDatabaseConnectionFormat, err)
 		}

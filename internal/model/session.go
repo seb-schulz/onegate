@@ -30,7 +30,7 @@ func nonce() []byte {
 }
 
 func newHMAC() hash.Hash {
-	return hmac.New(sha256.New, []byte(config.Default.Session.Key))
+	return hmac.New(sha256.New, []byte(config.Config.Session.Key))
 }
 
 func generateToken(id uint, nonce []byte) string {
@@ -61,7 +61,7 @@ func (s Session) String() string {
 }
 
 func (s Session) IsActive() bool {
-	return time.Since(s.UpdatedAt) <= config.Default.Session.ActiveFor
+	return time.Since(s.UpdatedAt) <= config.Config.Session.ActiveFor
 }
 
 func getSessionIDByToken(token string) (uint, error) {
