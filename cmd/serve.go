@@ -75,8 +75,9 @@ func runServeCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("cannot run server: %v", err)
 		}
 	} else if config.Config.Server.Kind == config.ServerKindFcgi {
-		fcgi.Serve(nil, r)
-
+		if err := fcgi.Serve(nil, r); err != nil {
+			return fmt.Errorf("cannot run server: %v", err)
+		}
 	}
 	return fmt.Errorf("cannot run any server type")
 }

@@ -80,16 +80,17 @@ server:
 )
 
 func init() {
+	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.ReadConfig(bytes.NewBuffer(defaultYaml))
-
-	for _, p := range configPaths() {
-		viper.AddConfigPath(p)
-	}
 
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("ONEGATE")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AddConfigPath("/etc/onegate/")
+	viper.AddConfigPath("$HOME/.onegate/")
+
+	viper.ReadInConfig()
 
 	if err := viper.Unmarshal(&Config, viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
 		stringToKindHookFunc(),
@@ -102,13 +103,7 @@ func init() {
 		log.Fatalln(err)
 	}
 
-	for k, v := range map[string]bool{"relyingParty.name": Config.RelyingParty.Name == "", "db.dsn": Config.DB.Dsn == "", "session.key": Config.Session.Key == "", "urlLogin.key": len(Config.UrlLogin.Key) == 0} {
-		if v {
-			log.Fatalf("missing value for %v", k)
-		}
-	}
-
-	if len(Config.RelyingParty.ID) <= 0 {
+	if len(Config.RelyingParty.ID) == 0 {
 		Config.RelyingParty.ID = Config.BaseUrl.Hostname()
 	}
 
@@ -124,10 +119,6 @@ func init() {
 	if Config.Server.HttpPort == "" {
 		Config.Server.HttpPort = Config.httpPort()
 	}
-}
-
-func configPaths() []string {
-	return []string{"/etc/onegate/", "$HOME/.onegate/"}
 }
 
 func base64StringToStringHookFunc() mapstructure.DecodeHookFunc {
