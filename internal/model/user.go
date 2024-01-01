@@ -1,6 +1,7 @@
 package model
 
 import (
+	"crypto/rand"
 	"fmt"
 
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -9,7 +10,9 @@ import (
 
 type User struct {
 	gorm.Model
-	AuthnID     []byte `gorm:"type:BLOB(16);default:RANDOM_BYTES(16);not null"`
+	// `RANDOM_BYTES` was added with MariaDB 10.10.0
+	// AuthnID     []byte `gorm:"type:BLOB(16);default:RANDOM_BYTES(16);not null"`
+	AuthnID     []byte `gorm:"type:BLOB(16)"`
 	Name        string `gorm:"type:VARCHAR(255);not null"`
 	DisplayName string `gorm:"type:VARCHAR(255);not null"`
 	Credentials []Credential
@@ -59,4 +62,18 @@ func CreateUser(user *User, session *Session) func(tx *gorm.DB) error {
 		}
 		return nil
 	}
+}
+
+func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+	if len(u.AuthnID) > 0 {
+		return nil
+	}
+
+	r := make([]byte, 16)
+	if _, err := rand.Read(r); err != nil {
+		return err
+	}
+
+	u.AuthnID = r
+	return nil
 }
