@@ -85,7 +85,7 @@ features:
 )
 
 func init() {
-	viper.SetConfigName("config")
+	viper.SetConfigName(".onegate.conf")
 	viper.SetConfigType("yaml")
 	viper.ReadConfig(bytes.NewBuffer(defaultYaml))
 
@@ -93,7 +93,7 @@ func init() {
 	viper.SetEnvPrefix("ONEGATE")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AddConfigPath("/etc/onegate/")
-	viper.AddConfigPath("$HOME/.onegate/")
+	viper.AddConfigPath(".")
 
 	viper.ReadInConfig()
 
