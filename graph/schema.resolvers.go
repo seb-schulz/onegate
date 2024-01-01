@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/seb-schulz/onegate/internal/config"
 	dbmodel "github.com/seb-schulz/onegate/internal/model"
 	"gorm.io/gorm"
 )
@@ -24,8 +25,13 @@ func (r *credentialResolver) ID(ctx context.Context, obj *dbmodel.Credential) (s
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protocol.CredentialCreation, error) {
+	defer time.Sleep(2 * time.Second)
+
+	if !config.Config.Features.UserRegistration {
+		return nil, fmt.Errorf("feature disabled")
+	}
+
 	session := mustSessionFromContext(ctx)
-	time.Sleep(2 * time.Second)
 
 	if session.UserID != nil {
 		return nil, fmt.Errorf("currently logged in with an user")

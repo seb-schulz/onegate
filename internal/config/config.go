@@ -47,6 +47,9 @@ type (
 			Kind     serverKind
 			HttpPort string
 		}
+		Features struct {
+			UserRegistration bool
+		}
 	}
 )
 
@@ -76,6 +79,8 @@ baseUrl: "http://localhost:9000"
 server:
   kind: "http"
   httpPort: ""
+features:
+  userRegistration: true
 `)
 )
 
@@ -245,7 +250,10 @@ func (c config) MarshalYAML() (interface{}, error) {
 			Kind     serverKind
 			HttpPort string
 		}
-	}{c.RelyingParty, c.DB, c.Session, c.UrlLogin, c.BaseUrl.String(), c.Server}, nil
+		Features struct {
+			UserRegistration bool
+		}
+	}{c.RelyingParty, c.DB, c.Session, c.UrlLogin, c.BaseUrl.String(), c.Server, c.Features}, nil
 }
 
 func (c config) httpPort() string {
