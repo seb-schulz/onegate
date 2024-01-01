@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/http"
+	"net/http/fcgi"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/go-chi/chi/v5"
@@ -63,12 +64,21 @@ func runServeCmd(cmd *cobra.Command, args []string) error {
 		r.Mount("/static", ui.StaticFiles())
 	})
 
-	port := config.Config.HttpPort
-	fmt.Println("Server listening on port ", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
-		return fmt.Errorf("cannot run server: %v", err)
+	if config.Config.Server.Kind == config.ServerKindHttp {
+		if config.Config.Server.HttpPort == "" {
+			return fmt.Errorf("http port not defined")
+		}
+
+		port := config.Config.Server.HttpPort
+		fmt.Println("Server listening on port ", port)
+		if err := http.ListenAndServe(":"+port, r); err != nil {
+			return fmt.Errorf("cannot run server: %v", err)
+		}
+	} else if config.Config.Server.Kind == config.ServerKindFcgi {
+		fcgi.Serve(nil, r)
+
 	}
-	return nil
+	return fmt.Errorf("cannot run any server type")
 }
 
 var serveCmd = &cobra.Command{

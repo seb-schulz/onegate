@@ -31,6 +31,8 @@ type (
 		ActiveFor time.Duration
 	}
 
+	serverKind int
+
 	config struct {
 		RelyingParty struct {
 			Name    string
@@ -38,11 +40,19 @@ type (
 			Origins []string
 		}
 		DB       db
-		HttpPort string
 		Session  session
 		UrlLogin urlLogin
 		BaseUrl  url.URL
+		Server   struct {
+			Kind     serverKind
+			HttpPort string
+		}
 	}
+)
+
+const (
+	ServerKindHttp serverKind = iota
+	ServerKindFcgi
 )
 
 var (
@@ -55,7 +65,6 @@ relyingParty:
 db:
   dsn: ""
   debug: false
-httpPort: ""
 session:
   key: ""
   activeFor: 2h
@@ -64,6 +73,9 @@ urlLogin:
   expiresIn: 30s
   validMethods: ["HS256", "HS384", "HS512"]
 baseUrl: "http://localhost:9000"
+server:
+  kind: "http"
+  httpPort: ""
 `)
 )
 
@@ -80,6 +92,7 @@ func init() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.Unmarshal(&Config, viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
+		stringToKindHookFunc(),
 		base64StringToBytesHookFunc(),
 		stringToURLHookFunc(),
 		mapstructure.StringToTimeDurationHookFunc(),
@@ -99,12 +112,6 @@ func init() {
 		Config.RelyingParty.ID = Config.BaseUrl.Hostname()
 	}
 
-	if Config.HttpPort == "" && Config.BaseUrl.Port() != "" {
-		Config.HttpPort = Config.BaseUrl.Port()
-	} else if Config.HttpPort == "" && Config.BaseUrl.Port() == "" {
-		Config.HttpPort = "443"
-	}
-
 	if len(Config.RelyingParty.Origins) == 0 {
 		xs := []string{Config.BaseUrl.Hostname()}
 		if Config.BaseUrl.Port() != "" {
@@ -112,6 +119,10 @@ func init() {
 		}
 
 		Config.RelyingParty.Origins = xs
+	}
+
+	if Config.Server.HttpPort == "" {
+		Config.Server.HttpPort = Config.httpPort()
 	}
 }
 
@@ -179,6 +190,29 @@ func stringToURLHookFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
+func stringToKindHookFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+		if t != reflect.TypeOf(ServerKindHttp) {
+			return data, nil
+		}
+
+		switch data.(string) {
+		case "http":
+			return ServerKindHttp, nil
+		case "fcgi":
+			return ServerKindFcgi, nil
+		default:
+			return nil, fmt.Errorf("cannot dedect kind of server type")
+		}
+	}
+}
+
 func (x db) MarshalYAML() (interface{}, error) {
 	return db{base64.StdEncoding.EncodeToString([]byte(x.Dsn)), x.Debug}, nil
 }
@@ -195,6 +229,16 @@ func (u urlLogin) MarshalYAML() (interface{}, error) {
 	}{base64.StdEncoding.EncodeToString(u.Key), u.ExpiresIn, u.ValidMethods}, nil
 }
 
+func (k serverKind) MarshalYAML() (interface{}, error) {
+	if k == ServerKindHttp {
+		return "http", nil
+	}
+	if k == ServerKindFcgi {
+		return "fcgi", nil
+	}
+	return nil, fmt.Errorf("invalid kind of server")
+}
+
 func (c config) MarshalYAML() (interface{}, error) {
 	return struct {
 		RelyingParty struct {
@@ -203,9 +247,28 @@ func (c config) MarshalYAML() (interface{}, error) {
 			Origins []string
 		}
 		DB       db
-		HttpPort string
 		Session  session
 		UrlLogin urlLogin
 		BaseUrl  string
-	}{c.RelyingParty, c.DB, c.HttpPort, c.Session, c.UrlLogin, c.BaseUrl.String()}, nil
+		Server   struct {
+			Kind     serverKind
+			HttpPort string
+		}
+	}{c.RelyingParty, c.DB, c.Session, c.UrlLogin, c.BaseUrl.String(), c.Server}, nil
+}
+
+func (c config) httpPort() string {
+	if c.Server.Kind != ServerKindHttp {
+		return ""
+	}
+
+	if c.Server.HttpPort != "" {
+		return Config.Server.HttpPort
+	}
+
+	if c.BaseUrl.Port() == "" {
+		return "9000"
+	} else {
+		return c.BaseUrl.Port()
+	}
 }
