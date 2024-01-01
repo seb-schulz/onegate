@@ -2,7 +2,7 @@ UI_BASEDIR := internal/ui
 
 .PHONY: build
 build: generate
-	go build -v -tags embedded,production ./
+	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags "-static"' -tags embedded,production ./
 
 .PHONY: generate
 generate:
