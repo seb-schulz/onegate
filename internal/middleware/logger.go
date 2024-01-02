@@ -30,7 +30,7 @@ func init() {
 	}
 
 	if config.Config.Logger.File != "" {
-		f, err := os.OpenFile(config.Config.Logger.File, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0444)
+		f, err := os.OpenFile(config.Config.Logger.File, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
 		if err != nil {
 			panic(err)
 		}
