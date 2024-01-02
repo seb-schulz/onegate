@@ -53,6 +53,10 @@ type (
 		Server   struct {
 			Kind     serverKind
 			HttpPort string
+			Limit    struct {
+				RequestLimit int
+				WindowLength time.Duration
+			}
 		}
 		Features struct {
 			UserRegistration bool
@@ -87,6 +91,9 @@ baseUrl: "http://localhost:9000"
 server:
   kind: "http"
   httpPort: ""
+  limit:
+    requestLimit: 50
+    windowLength: "1m"
 features:
   userRegistration: true
 logger:
@@ -277,6 +284,10 @@ func (c config) MarshalYAML() (interface{}, error) {
 		Server   struct {
 			Kind     serverKind
 			HttpPort string
+			Limit    struct {
+				RequestLimit int
+				WindowLength time.Duration
+			}
 		}
 		Features struct {
 			UserRegistration bool
