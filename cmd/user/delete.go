@@ -3,11 +3,9 @@ package user
 import (
 	"fmt"
 
-	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/model"
+	"github.com/seb-schulz/onegate/internal/utils"
 	"github.com/spf13/cobra"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 func init() {
@@ -19,13 +17,9 @@ var deleteCmd = &cobra.Command{
 	Short: "Soft-delete user",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := gorm.Open(mysql.Open(config.Config.DB.Dsn), &gorm.Config{})
+		db, err := utils.OpenDatabase(utils.WithDebugOption(debug))
 		if err != nil {
-			return fmt.Errorf(errDatabaseConnectionFormat, err)
-		}
-
-		if debug {
-			db = db.Debug()
+			return err
 		}
 
 		user := model.User{}

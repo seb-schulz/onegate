@@ -6,8 +6,7 @@ import (
 )
 
 const (
-	errDatabaseConnectionFormat = "failed to connect to database: %v"
-	errRetrieveUserFormat       = "cannot retrieve user: %v"
+	errRetrieveUserFormat = "cannot retrieve user: %v"
 )
 
 var (

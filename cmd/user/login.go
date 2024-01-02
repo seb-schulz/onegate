@@ -9,9 +9,8 @@ import (
 	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/middleware"
 	"github.com/seb-schulz/onegate/internal/model"
+	"github.com/seb-schulz/onegate/internal/utils"
 	"github.com/spf13/cobra"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 var (
@@ -30,13 +29,9 @@ var loginCmd = &cobra.Command{
 	Short: "Provide login URL for user recovery",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := gorm.Open(mysql.Open(config.Config.DB.Dsn), &gorm.Config{})
+		db, err := utils.OpenDatabase(utils.WithDebugOption(debug))
 		if err != nil {
-			return fmt.Errorf(errDatabaseConnectionFormat, err)
-		}
-
-		if debug {
-			db = db.Debug()
+			return err
 		}
 
 		user := model.User{}

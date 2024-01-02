@@ -6,15 +6,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/seb-schulz/onegate/internal/config"
-	"gorm.io/driver/mysql"
+	"github.com/seb-schulz/onegate/internal/utils"
 	"gorm.io/gorm"
 )
 
 func openDb() *gorm.DB {
-	db, err := gorm.Open(mysql.Open(config.Config.DB.Dsn), &gorm.Config{})
+	db, err := utils.OpenDatabase()
 	if err != nil {
-		panic("failed to connect database")
+		panic(err)
 	}
 	return db
 }

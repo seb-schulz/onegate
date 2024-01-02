@@ -13,9 +13,8 @@ import (
 	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/middleware"
 	"github.com/seb-schulz/onegate/internal/ui"
+	"github.com/seb-schulz/onegate/internal/utils"
 	"github.com/spf13/cobra"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 func init() {
@@ -23,13 +22,9 @@ func init() {
 }
 
 func runServeCmd(cmd *cobra.Command, args []string) error {
-	db, err := gorm.Open(mysql.Open(config.Config.DB.Dsn), &gorm.Config{})
+	db, err := utils.OpenDatabase(utils.WithDebugOption(config.Config.DB.Debug))
 	if err != nil {
-		return fmt.Errorf("failed to connect database: %v", err)
-	}
-
-	if config.Config.DB.Debug {
-		db = db.Debug()
+		return err
 	}
 
 	webAuthn, err := webauthn.New(&webauthn.Config{
