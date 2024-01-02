@@ -5,11 +5,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/url"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/go-chi/httplog/v2"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 )
@@ -33,6 +35,11 @@ type (
 
 	serverKind int
 
+	logger struct {
+		Level slog.Level
+		File  string
+	}
+
 	config struct {
 		RelyingParty struct {
 			Name    string
@@ -50,6 +57,7 @@ type (
 		Features struct {
 			UserRegistration bool
 		}
+		Logger logger
 	}
 )
 
@@ -81,6 +89,9 @@ server:
   httpPort: ""
 features:
   userRegistration: true
+logger:
+  level: "info"
+  file: ""
 `)
 )
 
@@ -99,6 +110,7 @@ func init() {
 
 	if err := viper.Unmarshal(&Config, viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
 		stringToKindHookFunc(),
+		stringToLogLevelHookFunc(),
 		base64StringToBytesHookFunc(),
 		stringToURLHookFunc(),
 		mapstructure.StringToTimeDurationHookFunc(),
@@ -209,6 +221,22 @@ func stringToKindHookFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
+func stringToLogLevelHookFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+		if t != reflect.TypeOf(slog.LevelInfo) {
+			return data, nil
+		}
+
+		return httplog.LevelByName(strings.ToUpper(data.(string))), nil
+	}
+}
+
 func (x db) MarshalYAML() (interface{}, error) {
 	return db{base64.StdEncoding.EncodeToString([]byte(x.Dsn)), x.Debug}, nil
 }
@@ -253,7 +281,8 @@ func (c config) MarshalYAML() (interface{}, error) {
 		Features struct {
 			UserRegistration bool
 		}
-	}{c.RelyingParty, c.DB, c.Session, c.UrlLogin, c.BaseUrl.String(), c.Server, c.Features}, nil
+		Logger logger
+	}{c.RelyingParty, c.DB, c.Session, c.UrlLogin, c.BaseUrl.String(), c.Server, c.Features, c.Logger}, nil
 }
 
 func (c config) httpPort() string {
