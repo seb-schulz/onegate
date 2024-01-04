@@ -6,26 +6,20 @@ import { useTranslation } from "react-i18next";
 import { gql } from '../__generated__/gql';
 import { useQuery } from "@apollo/client";
 
-const ME_GQL = gql(`
-query meIndex {
-  me {
-    displayName
-    name
-  }
-}`);
-
-
 export default function Index() {
     const { t } = useTranslation();
-    const { setFlashMessage } = useOutletContext<ContextType>()
-    const { data, loading, refetch } = useQuery(ME_GQL);
+    const { me, refetchMe, setFlashMessage } = useOutletContext<ContextType>()
 
     const handleError = (e: string) => setFlashMessage({ msg: e, type: "danger" })
 
-    if (loading) return <Spinner animation="border" />;
-
-    if (data?.me) {
-        return (<h1>Welcome {data.me.displayName ? data.me.displayName : data.me.name}</h1>);
+    if (me) {
+        return (
+            <Row>
+                <Col>
+                    <h1>Welcome {me.displayName ? me.displayName : me.name}</h1>
+                </Col>
+            </Row>
+        );
     }
 
     return (
@@ -33,7 +27,7 @@ export default function Index() {
             <Col md={6} xs={true}>
                 <SignupCard
                     onError={handleError}
-                    onUserCreated={refetch}
+                    onUserCreated={refetchMe}
                     onPasskeyAdded={() => {
                         setFlashMessage({ msg: t("Key creation succeeded"), type: "success" })
                     }} />

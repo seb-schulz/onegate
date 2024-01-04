@@ -2,9 +2,19 @@ import { useState } from "react";
 import { Variant } from "react-bootstrap/types";
 import { useTranslation } from "react-i18next";
 import { Outlet, NavLink } from "react-router-dom";
-import { Alert, Container, Nav, Navbar, Row, Stack, Toast, ToastContainer } from "react-bootstrap";
+import { Alert, Container, Nav, Navbar, Row, Spinner, Stack, Toast, ToastContainer } from "react-bootstrap";
 import NavbarLogin from "../components/NavbarLogin";
+import * as graphql from '../__generated__/graphql';
+import { gql } from '../__generated__/gql';
+import { ApolloQueryResult, useQuery } from "@apollo/client";
 
+const ME_GQL = gql(`
+query me {
+  me {
+    displayName
+    name
+  }
+}`);
 
 function FlashMessageToast({ bg, emptyChildren, children }: {
     bg: Variant | undefined
@@ -28,14 +38,21 @@ interface FlashMessageType {
     type: Variant
 }
 
-export type ContextType = { setFlashMessage: (value: FlashMessageType) => void };
+export type ContextType = {
+    setFlashMessage: (value: FlashMessageType) => void, me?: graphql.User,
+    refetchMe: (variables?: Partial<graphql.Exact<{
+        [key: string]: never;
+    }>> | undefined) => Promise<ApolloQueryResult<graphql.MeQuery>>
+};
 
 export default function Root() {
     const { t } = useTranslation();
-    const [flashMessage, setFlashMessage] = useState<FlashMessageType>({ msg: "", type: "danger" })
+    const [flashMessage, setFlashMessage] = useState<FlashMessageType>({ msg: "", type: "danger" });
+    const { loading, data, refetch } = useQuery(ME_GQL);
 
     const handleError = (e: string) => setFlashMessage({ msg: e, type: "danger" });
 
+    if (loading) return <Spinner animation="border" />;
 
     return (
         <Stack gap={2}>
@@ -62,14 +79,17 @@ export default function Root() {
                             </NavLink>
                         </Nav>
                     </Navbar.Collapse>
-                    <NavbarLogin onError={handleError} onSuccess={() => setFlashMessage({ msg: t("Login succeeded"), type: "success" })} />
+                    <NavbarLogin me={data?.me as graphql.User} onError={handleError} onSuccess={() => {
+                        refetch()
+                        setFlashMessage({ msg: t("Login succeeded"), type: "success" })
+                    }} />
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
                 </Container>
             </Navbar>
             <FlashMessageToast bg={flashMessage.type} emptyChildren={() => setFlashMessage({ ...flashMessage, msg: "" })}>{flashMessage.msg}</FlashMessageToast>
             <Container>
                 {!window.PublicKeyCredential ? <Row><Alert variant="danger">{t('This browser does not support WebAuthN.')}</Alert></Row> : ''}
-                <Outlet context={{ setFlashMessage } satisfies ContextType} />
+                <Outlet context={{ setFlashMessage, me: data?.me as graphql.User, refetchMe: refetch } satisfies ContextType} />
             </Container>
         </Stack>
     );

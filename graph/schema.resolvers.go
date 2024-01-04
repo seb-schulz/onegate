@@ -45,6 +45,40 @@ func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protoc
 	return r.beginRegistration(user, session.ID)
 }
 
+// UpdateMe is the resolver for the updateMe field.
+func (r *mutationResolver) UpdateMe(ctx context.Context, name *string, displayName *string) (*dbmodel.User, error) {
+	session := mustSessionFromContext(ctx)
+	if session.UserID == nil {
+		return nil, fmt.Errorf("user not logged in")
+	}
+
+	if name != nil && len(*name) < 1 && len(*name) > 255 {
+		return nil, fmt.Errorf("length of name must be between 1 and 255 letters")
+	}
+
+	if displayName != nil && len(*displayName) < 1 && len(*displayName) > 255 {
+		return nil, fmt.Errorf("length of display name must be between 1 and 255 letters")
+	}
+
+	user := session.User
+	if err := r.DB.Transaction(func(tx *gorm.DB) error {
+		if name != nil {
+			user.Name = *name
+		}
+
+		if displayName != nil {
+			user.DisplayName = *displayName
+		}
+
+		tx.Save(&user)
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("user cannot be saved: %v", err)
+	}
+
+	return user, nil
+}
+
 // InitCredential is the resolver for the initCredential field.
 func (r *mutationResolver) InitCredential(ctx context.Context) (*protocol.CredentialCreation, error) {
 	session := mustSessionFromContext(ctx)

@@ -9,7 +9,7 @@ import { gql } from '../__generated__/gql';
 import * as graphql from '../__generated__/graphql';
 import { ContextType } from "./root";
 
-const ME_GQL = gql(`
+const CREDENTIALS_GQL = gql(`
 query credentials {
   credentials {
     id
@@ -174,7 +174,7 @@ function CredentialEntry({ modus, credential, idx, onRemoval }: {
 export default function Credentials() {
     const { t } = useTranslation();
     const { setFlashMessage } = useOutletContext<ContextType>()
-    const { loading, data, refetch } = useQuery(ME_GQL, {
+    const { loading, data, refetch } = useQuery(CREDENTIALS_GQL, {
         onError: (error) => {
             setFlashMessage({ msg: (error as ApolloError).message, type: "danger" })
         }

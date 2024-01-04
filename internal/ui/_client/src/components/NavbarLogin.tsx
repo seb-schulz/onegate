@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { startAuthentication } from '@simplewebauthn/browser';
 import { ApolloError, useMutation, useQuery } from "@apollo/client";
 import { gql } from '../__generated__/gql';
-
+import * as graphql from '../__generated__/graphql';
 
 const BEGIN_LOGIN_QGL = gql(`
 mutation beginLogin {
@@ -17,22 +17,14 @@ mutation validateLogin($body: CredentialRequestResponse!) {
 }
 `);
 
-const ME_GQL = gql(`
-query meNavbar {
-  me {
-    displayName
-    name
-  }
-}`);
-
-function NavbarLogin({ onError, onSuccess }: {
+function NavbarLogin({ me, onError, onSuccess }: {
+    me?: graphql.User
     onSuccess: () => void
     onError: (errMsg: string) => void
 }) {
     const { t } = useTranslation();
     const [beginLogin, { loading: loadingBeginLogin }] = useMutation(BEGIN_LOGIN_QGL);
     const [validateLogin, { loading: loadingValidateLogin }] = useMutation(VALIDATE_LOGIN_QGL);
-    const { loading: loadingMe, data: dataMe, refetch: refetchMe } = useQuery(ME_GQL);
 
     if (loadingBeginLogin || loadingValidateLogin) return <Spinner animation="border" />;
 
@@ -61,20 +53,23 @@ function NavbarLogin({ onError, onSuccess }: {
 
             if (verificationResp.data.validateLogin) {
                 setTimeout(onSuccess, 0);
-                refetchMe()
             }
         } catch (error) {
             onError((error as ApolloError).message);
         }
     };
 
-    if (dataMe === undefined) return "";
-
-    if (!dataMe || !dataMe.me) return <>
+    if (!me) return <>
         <Button disabled={!window.PublicKeyCredential} onClick={handleSubmit}>{t('Login')}</Button>
     </>;
 
-    return <Navbar.Text>Name: {dataMe.me.displayName ? dataMe.me.displayName : dataMe.me.name}</Navbar.Text>
+    return (
+        <Navbar.Text>
+            Name: <a href="/me">
+                {me.displayName ? me.displayName : me.name}
+            </a>
+        </Navbar.Text>
+    )
 }
 
 export default NavbarLogin;

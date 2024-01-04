@@ -15,14 +15,14 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
 const documents = {
     "\nmutation beginLogin {\n  beginLogin\n}\n": types.BeginLoginDocument,
     "\nmutation validateLogin($body: CredentialRequestResponse!) {\n    validateLogin(body: $body)\n}\n": types.ValidateLoginDocument,
-    "\nquery meNavbar {\n  me {\n    displayName\n    name\n  }\n}": types.MeNavbarDocument,
     "\nmutation createUser($name: String!) {\n  createUser(name: $name)\n}\n": types.CreateUserDocument,
     "\nmutation addCredential($body: CredentialCreationResponse!) {\n    addCredential(body: $body)\n}\n": types.AddCredentialDocument,
     "\nquery credentials {\n  credentials {\n    id\n    description\n    createdAt\n    updatedAt\n    lastLogin\n  }\n}": types.CredentialsDocument,
     "\nmutation updateCredential($id: ID!, $description: String) {\n  updateCredential(id: $id, description: $description) {\n    id\n  }\n}": types.UpdateCredentialDocument,
     "\nmutation initCredential {\n    initCredential\n}\n": types.InitCredentialDocument,
     "\nmutation removeCredential($id: ID!) {\n    removeCredential(id: $id)\n}\n": types.RemoveCredentialDocument,
-    "\nquery meIndex {\n  me {\n    displayName\n    name\n  }\n}": types.MeIndexDocument,
+    "\nmutation updateMe($name: String, $displayName: String) {\n  updateMe(name: $name, displayName: $displayName) {\n    name\n  }\n}\n": types.UpdateMeDocument,
+    "\nquery me {\n  me {\n    displayName\n    name\n  }\n}": types.MeDocument,
     "\nquery sessions {\n  sessions {\n    id\n    createdAt\n    updatedAt\n    isActive\n    isCurrent\n  }\n}\n": types.SessionsDocument,
     "\nmutation removeSession($id: ID!) {\n  removeSession(id: $id)\n}\n": types.RemoveSessionDocument,
 };
@@ -52,10 +52,6 @@ export function gql(source: "\nmutation validateLogin($body: CredentialRequestRe
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "\nquery meNavbar {\n  me {\n    displayName\n    name\n  }\n}"): (typeof documents)["\nquery meNavbar {\n  me {\n    displayName\n    name\n  }\n}"];
-/**
- * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
- */
 export function gql(source: "\nmutation createUser($name: String!) {\n  createUser(name: $name)\n}\n"): (typeof documents)["\nmutation createUser($name: String!) {\n  createUser(name: $name)\n}\n"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
@@ -80,7 +76,11 @@ export function gql(source: "\nmutation removeCredential($id: ID!) {\n    remove
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "\nquery meIndex {\n  me {\n    displayName\n    name\n  }\n}"): (typeof documents)["\nquery meIndex {\n  me {\n    displayName\n    name\n  }\n}"];
+export function gql(source: "\nmutation updateMe($name: String, $displayName: String) {\n  updateMe(name: $name, displayName: $displayName) {\n    name\n  }\n}\n"): (typeof documents)["\nmutation updateMe($name: String, $displayName: String) {\n  updateMe(name: $name, displayName: $displayName) {\n    name\n  }\n}\n"];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "\nquery me {\n  me {\n    displayName\n    name\n  }\n}"): (typeof documents)["\nquery me {\n  me {\n    displayName\n    name\n  }\n}"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
