@@ -8,5 +8,5 @@ import (
 )
 
 func addGraphQLPlayground(r chi.Router) {
-	r.Get("/play", playground.Handler("GraphQL playground", "/query"))
+	r.Get("/play", playground.HandlerWithHeaders("GraphQL playground", "/query", map[string]string{"X-Onegate-Csrf-Protection": "1"}, nil))
 }

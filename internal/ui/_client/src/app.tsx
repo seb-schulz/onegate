@@ -1,6 +1,8 @@
 import * as React from 'react'
 import ReactDOM from 'react-dom/client';
-import { ApolloClient, InMemoryCache, ApolloProvider, gql, createHttpLink } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
+
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -24,9 +26,16 @@ i18n
     });
 
 const client = new ApolloClient({
-    link: createHttpLink({
+    link: setContext((_, { headers }) => {
+        return {
+            headers: {
+                ...headers,
+                'X-Onegate-Csrf-Protection': '1'
+            }
+        }
+    }).concat(createHttpLink({
         uri: '/query',
-    }),
+    })),
     cache: new InMemoryCache(),
 });
 

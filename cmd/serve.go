@@ -21,6 +21,33 @@ func init() {
 	RootCmd.AddCommand(serveCmd)
 }
 
+func csrfMitigation(next http.Handler) http.Handler {
+	unauthorizedRequest := func(w http.ResponseWriter) {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte("unauthorized request"))
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		value, ok := r.Header["X-Onegate-Csrf-Protection"]
+		if !ok {
+			unauthorizedRequest(w)
+			return
+		}
+
+		if len(value) > 1 {
+			unauthorizedRequest(w)
+			return
+		}
+
+		if value[0] != "1" {
+			unauthorizedRequest(w)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func runServeCmd(cmd *cobra.Command, args []string) error {
 	db, err := utils.OpenDatabase(utils.WithDebugOption(config.Config.DB.Debug))
 	if err != nil {
@@ -46,7 +73,7 @@ func runServeCmd(cmd *cobra.Command, args []string) error {
 
 		srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db, WebAuthn: webAuthn}}))
 
-		r.Handle("/query", srv)
+		r.Handle("/query", csrfMitigation(srv))
 		addGraphQLPlayground(r)
 		r.Handle("/*", ui.Template("index.html.tmpl", func() any {
 			return map[string]any{}
