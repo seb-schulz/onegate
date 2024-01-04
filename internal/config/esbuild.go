@@ -15,8 +15,8 @@ func DefaultBuildOptions(absWorkingDir, outdir string, prod bool) api.BuildOptio
 		MinifyIdentifiers: prod,
 		MinifySyntax:      prod,
 		Loader: map[string]api.Loader{
-			".woff2": api.LoaderDataURL,
-			".woff":  api.LoaderDataURL,
+			".woff2": api.LoaderFile,
+			".woff":  api.LoaderFile,
 		},
 	}
 

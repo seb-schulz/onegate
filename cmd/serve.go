@@ -64,6 +64,7 @@ func runServeCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	r := chi.NewRouter()
+	r.Use(middleware.ContentSecurityPolicy)
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Logger)
 		r.Use(httprate.LimitByRealIP(config.Config.Server.Limit.RequestLimit, config.Config.Server.Limit.WindowLength))
