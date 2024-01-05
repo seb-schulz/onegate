@@ -1,6 +1,6 @@
 //go:build !production
 
-package cmd
+package server
 
 import (
 	"github.com/99designs/gqlgen/graphql/playground"
