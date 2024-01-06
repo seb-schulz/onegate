@@ -17,6 +17,8 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Display Go version
         run: go version
+      - run: npm install
+        working-directory: ./internal/ui/_client
       - run: make build-client
       - run: make test
       - run: make vet
