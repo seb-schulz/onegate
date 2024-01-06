@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/server"
 	"github.com/spf13/cobra"
 )
@@ -10,7 +12,23 @@ func init() {
 }
 
 func runServeCmd(cmd *cobra.Command, args []string) error {
-	return server.Serve()
+	c := server.ServerConfig{
+		Router: server.RouterConfig{
+			DbDebug: config.Config.DB.Debug,
+			Webauthn: webauthn.Config{
+				RPDisplayName: config.Config.RelyingParty.Name,
+				RPID:          config.Config.RelyingParty.ID,
+				RPOrigins:     config.Config.RelyingParty.Origins,
+			},
+			Limit: server.RouterLimitConfig{
+				RequestLimit: config.Config.Server.Limit.RequestLimit, WindowLength: config.Config.Server.Limit.WindowLength,
+			},
+		},
+		HttpPort:  config.Config.Server.HttpPort,
+		ServeType: server.ServeType(config.Config.Server.Kind),
+	}
+
+	return server.Serve(&c)
 }
 
 var serveCmd = &cobra.Command{
