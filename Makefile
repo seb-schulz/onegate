@@ -1,12 +1,16 @@
 UI_BASEDIR := internal/ui
 
 .PHONY: build
-build: generate
+build: build-client
 	CGO_ENABLED=0 go build -v -ldflags '-w -extldflags "-static"' -tags embedded,production ./
+
+.PHONY: build-client
+build-client:
+	go generate -tags embedded,production ./...
 
 .PHONY: generate
 generate:
-	go generate -v -tags embedded,production ./...
+	go generate -v -tags gqlgen ./...
 
 .PHONY: test vet
 test vet:
