@@ -65,7 +65,7 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 
 		srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db, WebAuthn: webAuthn}}))
 
-		r.Handle("/query", csrfMitigation(srv))
+		r.Handle("/query", csrfMitigationMiddleware(srv))
 		addGraphQLPlayground(r)
 		r.Handle("/*", ui.Template("index.html.tmpl", func() any {
 			return map[string]any{}

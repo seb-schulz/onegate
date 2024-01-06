@@ -1,27 +1,24 @@
 package server
 
-import "net/http"
+import (
+	"net/http"
+)
 
-func csrfMitigation(next http.Handler) http.Handler {
-	unauthorizedRequest := func(w http.ResponseWriter) {
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte("unauthorized request"))
-	}
-
+func csrfMitigationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		value, ok := r.Header["X-Onegate-Csrf-Protection"]
 		if !ok {
-			unauthorizedRequest(w)
+			http.Error(w, "unauthorized request", http.StatusUnauthorized)
 			return
 		}
 
 		if len(value) > 1 {
-			unauthorizedRequest(w)
+			http.Error(w, "unauthorized request", http.StatusUnauthorized)
 			return
 		}
 
 		if value[0] != "1" {
-			unauthorizedRequest(w)
+			http.Error(w, "unauthorized request", http.StatusUnauthorized)
 			return
 		}
 
