@@ -8,6 +8,10 @@ build: generate
 generate:
 	go generate -v -tags embedded,production ./...
 
+.PHONY: test vet
+test vet:
+	go $@ -tags embedded,production ./...
+
 .PHONY: migrate
 migrate:
 	go run -v -tags embedded,production ./ migrate
