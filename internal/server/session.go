@@ -3,7 +3,6 @@ package server
 import (
 	"crypto/hmac"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"hash"
@@ -18,6 +17,10 @@ type sessionToken struct {
 	Salt      [4]byte
 }
 
+type sessionTokenizer interface {
+	signedToken(key []byte, sig func() hash.Hash) ([]byte, error)
+}
+
 var sessionBinarySize = 0
 
 func init() {
@@ -25,7 +28,7 @@ func init() {
 	sessionBinarySize = len(x)
 }
 
-func newSessionToken() *sessionToken {
+func newSessionToken() sessionTokenizer {
 	s := sessionToken{
 		UUID:      uuid.Must(uuid.NewRandom()),
 		CreatedAt: time.Now().Truncate(time.Second),
@@ -66,35 +69,30 @@ func (s *sessionToken) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (s *sessionToken) signedToken(key []byte, sig func() hash.Hash) (string, error) {
+func (s *sessionToken) signedToken(key []byte, sig func() hash.Hash) ([]byte, error) {
 	h := hmac.New(sig, append(key, s.Salt[:]...))
 
 	data, err := s.MarshalBinary()
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
 
 	if _, err := h.Write(data); err != nil {
-		return "", err
+		return []byte{}, err
 	}
 
-	return base64.RawURLEncoding.EncodeToString(append(data, h.Sum(nil)...)), nil
+	return append(data, h.Sum(nil)...), nil
 }
 
-func parseToken(key []byte, sig func() hash.Hash, token string) (*sessionToken, error) {
-	rawToken, err := base64.RawURLEncoding.DecodeString(token)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(rawToken) != sessionBinarySize+sig().Size() {
+func parseToken(key []byte, sig func() hash.Hash, token []byte) (sessionTokenizer, error) {
+	if len(token) != sessionBinarySize+sig().Size() {
 		return nil, fmt.Errorf("token is tampered")
 	}
 
 	// Split token into payload part and siganture part
-	payload, signature := rawToken[:sessionBinarySize], rawToken[sessionBinarySize:]
+	payload, signature := token[:sessionBinarySize], token[sessionBinarySize:]
 
-	h := hmac.New(sig, append(key, rawToken[:4]...))
+	h := hmac.New(sig, append(key, token[:4]...))
 	if _, err := h.Write(payload); err != nil {
 		return nil, err
 	}
