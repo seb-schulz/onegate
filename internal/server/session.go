@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
@@ -18,14 +19,15 @@ type sessionToken struct {
 	UUID      uuid.UUID
 	CreatedAt time.Time
 	Salt      [4]byte
+	sig       func() hash.Hash
 }
 
 type sessionTokenSigner interface {
-	sign(key []byte, sig func() hash.Hash) ([]byte, error)
+	sign(key []byte) ([]byte, error)
 }
 
 type sessionTokenParser interface {
-	parse(key []byte, sig func() hash.Hash, token []byte) error
+	parse(key []byte, token []byte) error
 }
 
 type sessionTokenInitializer interface {
@@ -43,6 +45,10 @@ var sessionBinarySize = 0
 func init() {
 	x, _ := (&sessionToken{}).MarshalBinary()
 	sessionBinarySize = len(x)
+}
+
+func newSessionToken() sessionTokenizer {
+	return &sessionToken{sig: sha256.New}
 }
 
 func (s *sessionToken) initialize() {
@@ -82,8 +88,8 @@ func (s *sessionToken) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (s *sessionToken) sign(key []byte, sig func() hash.Hash) ([]byte, error) {
-	h := hmac.New(sig, append(key, s.Salt[:]...))
+func (s *sessionToken) sign(key []byte) ([]byte, error) {
+	h := hmac.New(s.sig, append(key, s.Salt[:]...))
 
 	data, err := s.MarshalBinary()
 	if err != nil {
@@ -97,15 +103,15 @@ func (s *sessionToken) sign(key []byte, sig func() hash.Hash) ([]byte, error) {
 	return append(data, h.Sum(nil)...), nil
 }
 
-func (s *sessionToken) parse(key []byte, sig func() hash.Hash, token []byte) error {
-	if len(token) != sessionBinarySize+sig().Size() {
+func (s *sessionToken) parse(key []byte, token []byte) error {
+	if len(token) != sessionBinarySize+s.sig().Size() {
 		return fmt.Errorf("token is tampered")
 	}
 
 	// Split token into payload part and siganture part
 	payload, signature := token[:sessionBinarySize], token[sessionBinarySize:]
 
-	h := hmac.New(sig, append(key, token[:4]...))
+	h := hmac.New(s.sig, append(key, token[:4]...))
 	if _, err := h.Write(payload); err != nil {
 		return err
 	}
@@ -127,12 +133,11 @@ var contextSessionToken = contextSessionKeyType{"session"}
 
 type sessionMiddleware struct {
 	key      []byte
-	signer   func() hash.Hash
 	newToken func() sessionTokenizer
 }
 
 func (s *sessionMiddleware) setCookie(w http.ResponseWriter, token sessionTokenSigner) {
-	sToken, err := token.sign(s.key, s.signer)
+	sToken, err := token.sign(s.key)
 	if err != nil {
 		panic(err) // signing token should not fail
 	}
@@ -158,7 +163,7 @@ func (s *sessionMiddleware) tokenFromCookie(req *http.Request, token sessionToke
 		return err
 	}
 
-	return token.parse(s.key, s.signer, rawToken)
+	return token.parse(s.key, rawToken)
 }
 
 func (s *sessionMiddleware) Handler(next http.Handler) http.Handler {

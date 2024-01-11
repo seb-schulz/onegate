@@ -2,11 +2,9 @@ package server
 
 import (
 	"bytes"
-	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"hash"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +16,7 @@ import (
 )
 
 func createSessionToken(u string, t int64, s string) sessionTokenizer {
-	r := sessionToken{UUID: uuid.MustParse(u), CreatedAt: time.Unix(t, 0)}
+	r := sessionToken{UUID: uuid.MustParse(u), CreatedAt: time.Unix(t, 0), sig: sha256.New}
 	r.Salt = [4]byte([]byte(s))
 	return &r
 }
@@ -62,7 +60,7 @@ func TestSignedSessionToken(t *testing.T) {
 	key := []byte("secure!!!")
 
 	for expected, s := range map[string]sessionTokenizer{
-		"AAAAAAAAAAAAAAAAAAAAAAAAAACIbgkAlwWFXLNd7Xfs_ZdTMKkkcnvxrwPKlXHp0qrMTV1EABI": &sessionToken{},
+		"AAAAAAAAAAAAAAAAAAAAAAAAAACIbgkAlwWFXLNd7Xfs_ZdTMKkkcnvxrwPKlXHp0qrMTV1EABI": newSessionToken(),
 		"YWJjZMtGR_c2iUvMuF29G_7xiFUAAAAAoi54y4EnLqb5ggEn6ng7FKxwXw8-iAGaVdoBnas6R3A": createSessionToken("cb4647f736894bccb85dbd1bfef18855", 0, "abcd"),
 		"YWJjZOlyXRxo6EHTiGJ1YbtU35MAAAAAlcvsrJ7mWaLv2pFHwdjIt0JWjhUVVn0xs7dw0XcmD5Q": createSessionToken("e9725d1c68e841d388627561bb54df93", 0, "abcd"),
 		"YWJjZP6olW1VlUo3otsekH6RMOoAAAAAOEA0f1P6S41-UHvrY6zb6ZkoSGviYWZDFOcmUUZ5HPY": createSessionToken("fea8956d55954a37a2db1e907e9130ea", 0, "abcd"),
@@ -74,10 +72,14 @@ func TestSignedSessionToken(t *testing.T) {
 		"MTIzNMtGR_c2iUvMuF29G_7xiFUAAAAB3Z2dMSJNyh9fOdH_PAXyDdeOBW5yVskh1sFvYgSJzjI": createSessionToken("cb4647f736894bccb85dbd1bfef18855", 1, "1234"),
 		"MTIzNOlyXRxo6EHTiGJ1YbtU35MAAAABBbfrcwqBRRsAO9JdIIxlUgSWlvR0knstidChTyBP0Lg": createSessionToken("e9725d1c68e841d388627561bb54df93", 1, "1234"),
 	} {
-		if got, _ := s.sign(key, sha256.New); expected != base64.RawURLEncoding.EncodeToString(got) {
+		if got, _ := s.sign(key); expected != base64.RawURLEncoding.EncodeToString(got) {
 			t.Errorf("Expected result %#v not %#v", expected, got)
 		}
 	}
+}
+
+func deepEqualSessionToken(a, b *sessionToken) bool {
+	return reflect.DeepEqual(a.UUID, b.UUID) && a.CreatedAt.Truncate(time.Second) == b.CreatedAt.Truncate(time.Second) && bytes.Equal(a.Salt[:], b.Salt[:])
 }
 
 func TestParseSessionToken(t *testing.T) {
@@ -96,13 +98,13 @@ func TestParseSessionToken(t *testing.T) {
 		"MTIzNOlyXRxo6EHTiGJ1YbtU35MAAAABBbfrcwqBRRsAO9JdIIxlUgSWlvR0knstidChTyBP0Lg": createSessionToken("e9725d1c68e841d388627561bb54df93", 1, "1234"),
 	} {
 		rawToken, _ := base64.RawURLEncoding.DecodeString(token)
-		got := &sessionToken{}
-		err := got.parse(key, sha256.New, rawToken)
+		got := newSessionToken()
+		err := got.parse(key, rawToken)
 		if err != nil {
 			t.Errorf("parseToken failed: %v", err)
 		}
 
-		if !reflect.DeepEqual(got, expected) {
+		if !deepEqualSessionToken(got.(*sessionToken), expected.(*sessionToken)) {
 			t.Errorf("Expected result %#v not %#v", expected, got)
 		}
 	}
@@ -126,22 +128,23 @@ func FuzzSessionToken(f *testing.F) {
 			t.Errorf("failed to setup test: %v", err)
 		}
 
-		orig := sessionToken{
+		orig := &sessionToken{
 			UUID: uuid.Must(uuid.NewRandomFromReader(gen)), CreatedAt: time.Unix(int64(gen.Uint32()), 0),
 			Salt: [4]byte(salt),
+			sig:  sha256.New,
 		}
 
-		token, err := orig.sign(key, sha256.New)
+		token, err := orig.sign(key)
 		if err != nil {
 			t.Fatalf("failed encoding session %v", err)
 		}
 
-		new := sessionToken{}
-		if err := new.parse(key, sha256.New, token); err != nil {
+		new := newSessionToken()
+		if err := new.parse(key, token); err != nil {
 			t.Fatalf("failed parse token %v", err)
 		}
 
-		if !reflect.DeepEqual(orig, new) {
+		if !deepEqualSessionToken(orig, new.(*sessionToken)) {
 			t.Errorf("sessions are %#v != %#v", orig, new)
 		}
 	})
@@ -149,17 +152,17 @@ func FuzzSessionToken(f *testing.F) {
 
 type mockSession struct {
 	data    []byte
-	signFn  func(s *mockSession, key []byte, sig func() hash.Hash) ([]byte, error)
-	parseFn func(s *mockSession, key []byte, sig func() hash.Hash, token []byte) error
+	signFn  func(s *mockSession, key []byte) ([]byte, error)
+	parseFn func(s *mockSession, key []byte, token []byte) error
 	initFn  func(*mockSession)
 }
 
-func (s *mockSession) parse(key []byte, sig func() hash.Hash, token []byte) error {
-	return s.parseFn(s, key, sig, token)
+func (s *mockSession) parse(key []byte, token []byte) error {
+	return s.parseFn(s, key, token)
 }
 
-func (s *mockSession) sign(key []byte, sig func() hash.Hash) ([]byte, error) {
-	return s.signFn(s, key, sig)
+func (s *mockSession) sign(key []byte) ([]byte, error) {
+	return s.signFn(s, key)
 }
 
 func (s *mockSession) initialize() {
@@ -202,17 +205,16 @@ func FuzzSessionMiddleware_responds_code(f *testing.F) {
 			gen.Read(key[:])
 
 			middleware := sessionMiddleware{
-				key:    key[:],
-				signer: sha1.New,
+				key: key[:],
 				newToken: func() sessionTokenizer {
 					return &mockSession{
-						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+						signFn: func(s *mockSession, k []byte) ([]byte, error) {
 							if !bytes.Equal(key[:], k) {
 								t.Errorf("keys are not equal %#v != %#v", key[:], k)
 							}
 							return s.data, nil
 						},
-						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, token []byte) error {
+						parseFn: func(s *mockSession, key []byte, token []byte) error {
 							s.data = token
 							return nil
 						},
@@ -265,17 +267,16 @@ func FuzzSessionMiddleware_responds_code(f *testing.F) {
 			gen.Read(key[:])
 
 			middleware := sessionMiddleware{
-				key:    key[:],
-				signer: sha1.New,
+				key: key[:],
 				newToken: func() sessionTokenizer {
 					return &mockSession{
-						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+						signFn: func(s *mockSession, k []byte) ([]byte, error) {
 							if !bytes.Equal(key[:], k) {
 								t.Errorf("keys are not equal %#v != %#v", key[:], k)
 							}
 							return s.data, nil
 						},
-						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, token []byte) error {
+						parseFn: func(s *mockSession, key []byte, token []byte) error {
 							return fmt.Errorf("invalid token")
 						},
 						initFn: func(s *mockSession) {
@@ -337,15 +338,14 @@ func FuzzSessionMiddleware_responds_code(f *testing.F) {
 			gen.Read(key[:])
 
 			middleware := sessionMiddleware{
-				key:    key[:],
-				signer: sha1.New,
+				key: key[:],
 				newToken: func() sessionTokenizer {
 					return &mockSession{
-						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+						signFn: func(s *mockSession, k []byte) ([]byte, error) {
 							t.Error("this func does not need to be called")
 							return s.data, nil
 						},
-						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, got []byte) error {
+						parseFn: func(s *mockSession, key []byte, got []byte) error {
 							if !bytes.Equal(token[:], got) {
 								t.Errorf("Got %#v instead of %#v.", got, token[:])
 							}
@@ -413,17 +413,16 @@ func FuzzSessionMiddleware_context(f *testing.F) {
 			gen.Read(key[:])
 
 			middleware := sessionMiddleware{
-				key:    key[:],
-				signer: sha1.New,
+				key: key[:],
 				newToken: func() sessionTokenizer {
 					return &mockSession{
-						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+						signFn: func(s *mockSession, k []byte) ([]byte, error) {
 							if !bytes.Equal(key[:], k) {
 								t.Errorf("keys are not equal %#v != %#v", key[:], k)
 							}
 							return s.data, nil
 						},
-						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, token []byte) error {
+						parseFn: func(s *mockSession, key []byte, token []byte) error {
 							s.data = token
 							return nil
 						},
@@ -463,17 +462,16 @@ func FuzzSessionMiddleware_context(f *testing.F) {
 			gen.Read(key[:])
 
 			middleware := sessionMiddleware{
-				key:    key[:],
-				signer: sha1.New,
+				key: key[:],
 				newToken: func() sessionTokenizer {
 					return &mockSession{
-						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+						signFn: func(s *mockSession, k []byte) ([]byte, error) {
 							if !bytes.Equal(key[:], k) {
 								t.Errorf("keys are not equal %#v != %#v", key[:], k)
 							}
 							return s.data, nil
 						},
-						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, token []byte) error {
+						parseFn: func(s *mockSession, key []byte, token []byte) error {
 							return fmt.Errorf("invalid token")
 						},
 						initFn: func(s *mockSession) {
@@ -522,15 +520,14 @@ func FuzzSessionMiddleware_context(f *testing.F) {
 			gen.Read(key[:])
 
 			middleware := sessionMiddleware{
-				key:    key[:],
-				signer: sha1.New,
+				key: key[:],
 				newToken: func() sessionTokenizer {
 					return &mockSession{
-						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+						signFn: func(s *mockSession, k []byte) ([]byte, error) {
 							t.Error("this func does not need to be called")
 							return s.data, nil
 						},
-						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, got []byte) error {
+						parseFn: func(s *mockSession, key []byte, got []byte) error {
 							if !bytes.Equal(token[:], got) {
 								t.Errorf("Got %#v instead of %#v.", got, token[:])
 							}
