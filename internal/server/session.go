@@ -21,11 +21,11 @@ type sessionToken struct {
 }
 
 type sessionTokenSigner interface {
-	signedToken(key []byte, sig func() hash.Hash) ([]byte, error)
+	sign(key []byte, sig func() hash.Hash) ([]byte, error)
 }
 
 type sessionTokenParser interface {
-	parseToken(key []byte, sig func() hash.Hash, token []byte) error
+	parse(key []byte, sig func() hash.Hash, token []byte) error
 }
 
 type sessionTokenInitializer interface {
@@ -82,7 +82,7 @@ func (s *sessionToken) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (s *sessionToken) signedToken(key []byte, sig func() hash.Hash) ([]byte, error) {
+func (s *sessionToken) sign(key []byte, sig func() hash.Hash) ([]byte, error) {
 	h := hmac.New(sig, append(key, s.Salt[:]...))
 
 	data, err := s.MarshalBinary()
@@ -97,7 +97,7 @@ func (s *sessionToken) signedToken(key []byte, sig func() hash.Hash) ([]byte, er
 	return append(data, h.Sum(nil)...), nil
 }
 
-func (s *sessionToken) parseToken(key []byte, sig func() hash.Hash, token []byte) error {
+func (s *sessionToken) parse(key []byte, sig func() hash.Hash, token []byte) error {
 	if len(token) != sessionBinarySize+sig().Size() {
 		return fmt.Errorf("token is tampered")
 	}
@@ -132,7 +132,7 @@ type sessionMiddleware struct {
 }
 
 func (s *sessionMiddleware) setCookie(w http.ResponseWriter, token sessionTokenSigner) {
-	sToken, err := token.signedToken(s.key, s.signer)
+	sToken, err := token.sign(s.key, s.signer)
 	if err != nil {
 		panic(err) // signing token should not fail
 	}
@@ -158,7 +158,7 @@ func (s *sessionMiddleware) tokenFromCookie(req *http.Request, token sessionToke
 		return err
 	}
 
-	return token.parseToken(s.key, s.signer, rawToken)
+	return token.parse(s.key, s.signer, rawToken)
 }
 
 func (s *sessionMiddleware) Handler(next http.Handler) http.Handler {

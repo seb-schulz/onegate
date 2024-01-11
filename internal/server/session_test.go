@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func createSessionToken(u string, t int64, s string) *sessionToken {
+func createSessionToken(u string, t int64, s string) sessionTokenizer {
 	r := sessionToken{UUID: uuid.MustParse(u), CreatedAt: time.Unix(t, 0)}
 	r.Salt = [4]byte([]byte(s))
 	return &r
@@ -61,7 +61,7 @@ func TestMarshalBinarySessionToken(t *testing.T) {
 func TestSignedSessionToken(t *testing.T) {
 	key := []byte("secure!!!")
 
-	for expected, s := range map[string]*sessionToken{
+	for expected, s := range map[string]sessionTokenizer{
 		"AAAAAAAAAAAAAAAAAAAAAAAAAACIbgkAlwWFXLNd7Xfs_ZdTMKkkcnvxrwPKlXHp0qrMTV1EABI": &sessionToken{},
 		"YWJjZMtGR_c2iUvMuF29G_7xiFUAAAAAoi54y4EnLqb5ggEn6ng7FKxwXw8-iAGaVdoBnas6R3A": createSessionToken("cb4647f736894bccb85dbd1bfef18855", 0, "abcd"),
 		"YWJjZOlyXRxo6EHTiGJ1YbtU35MAAAAAlcvsrJ7mWaLv2pFHwdjIt0JWjhUVVn0xs7dw0XcmD5Q": createSessionToken("e9725d1c68e841d388627561bb54df93", 0, "abcd"),
@@ -74,7 +74,7 @@ func TestSignedSessionToken(t *testing.T) {
 		"MTIzNMtGR_c2iUvMuF29G_7xiFUAAAAB3Z2dMSJNyh9fOdH_PAXyDdeOBW5yVskh1sFvYgSJzjI": createSessionToken("cb4647f736894bccb85dbd1bfef18855", 1, "1234"),
 		"MTIzNOlyXRxo6EHTiGJ1YbtU35MAAAABBbfrcwqBRRsAO9JdIIxlUgSWlvR0knstidChTyBP0Lg": createSessionToken("e9725d1c68e841d388627561bb54df93", 1, "1234"),
 	} {
-		if got, _ := s.signedToken(key, sha256.New); expected != base64.RawURLEncoding.EncodeToString(got) {
+		if got, _ := s.sign(key, sha256.New); expected != base64.RawURLEncoding.EncodeToString(got) {
 			t.Errorf("Expected result %#v not %#v", expected, got)
 		}
 	}
@@ -83,7 +83,7 @@ func TestSignedSessionToken(t *testing.T) {
 func TestParseSessionToken(t *testing.T) {
 	key := []byte("secure!!!")
 
-	for token, expected := range map[string]*sessionToken{
+	for token, expected := range map[string]sessionTokenizer{
 		"YWJjZMtGR_c2iUvMuF29G_7xiFUAAAAAoi54y4EnLqb5ggEn6ng7FKxwXw8-iAGaVdoBnas6R3A": createSessionToken("cb4647f736894bccb85dbd1bfef18855", 0, "abcd"),
 		"YWJjZOlyXRxo6EHTiGJ1YbtU35MAAAAAlcvsrJ7mWaLv2pFHwdjIt0JWjhUVVn0xs7dw0XcmD5Q": createSessionToken("e9725d1c68e841d388627561bb54df93", 0, "abcd"),
 		"YWJjZP6olW1VlUo3otsekH6RMOoAAAAAOEA0f1P6S41-UHvrY6zb6ZkoSGviYWZDFOcmUUZ5HPY": createSessionToken("fea8956d55954a37a2db1e907e9130ea", 0, "abcd"),
@@ -97,7 +97,7 @@ func TestParseSessionToken(t *testing.T) {
 	} {
 		rawToken, _ := base64.RawURLEncoding.DecodeString(token)
 		got := &sessionToken{}
-		err := got.parseToken(key, sha256.New, rawToken)
+		err := got.parse(key, sha256.New, rawToken)
 		if err != nil {
 			t.Errorf("parseToken failed: %v", err)
 		}
@@ -131,13 +131,13 @@ func FuzzSessionToken(f *testing.F) {
 			Salt: [4]byte(salt),
 		}
 
-		token, err := orig.signedToken(key, sha256.New)
+		token, err := orig.sign(key, sha256.New)
 		if err != nil {
 			t.Fatalf("failed encoding session %v", err)
 		}
 
 		new := sessionToken{}
-		if err := new.parseToken(key, sha256.New, token); err != nil {
+		if err := new.parse(key, sha256.New, token); err != nil {
 			t.Fatalf("failed parse token %v", err)
 		}
 
@@ -154,11 +154,11 @@ type mockSession struct {
 	initFn  func(*mockSession)
 }
 
-func (s *mockSession) parseToken(key []byte, sig func() hash.Hash, token []byte) error {
+func (s *mockSession) parse(key []byte, sig func() hash.Hash, token []byte) error {
 	return s.parseFn(s, key, sig, token)
 }
 
-func (s *mockSession) signedToken(key []byte, sig func() hash.Hash) ([]byte, error) {
+func (s *mockSession) sign(key []byte, sig func() hash.Hash) ([]byte, error) {
 	return s.signFn(s, key, sig)
 }
 
