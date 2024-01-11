@@ -169,6 +169,10 @@ func (s *mockSession) initialize() {
 	s.initFn(s)
 }
 
+func (s *mockSession) String() string {
+	return string(s.data)
+}
+
 func foreachCookie(resp *http.Response, name string, fn func(*http.Cookie)) {
 	for _, c := range resp.Cookies() {
 		if c.Name == "session" {

@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"hash"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -39,6 +40,7 @@ type sessionTokenizer interface {
 	sessionTokenInitializer
 	sessionTokenSigner
 	sessionTokenParser
+	fmt.Stringer
 }
 
 var sessionBinarySize = 0
@@ -128,6 +130,10 @@ func (s *sessionToken) parse(key []byte, token []byte) error {
 	return nil
 }
 
+func (s *sessionToken) String() string {
+	return fmt.Sprint(s.UUID)
+}
+
 type contextSessionKeyType struct{ string }
 
 var contextSessionToken = contextSessionKeyType{"session"}
@@ -182,6 +188,7 @@ func (s *sessionMiddleware) Handler(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), contextSessionToken, token)
+		httplog.LogEntrySetField(ctx, "session", slog.StringValue(fmt.Sprint(token)))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 
