@@ -2,9 +2,6 @@ package server
 
 import (
 	"bytes"
-	"context"
-	"crypto/hmac"
-	crand "crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
@@ -28,7 +25,8 @@ func createSessionToken(u string, t int64, s string) *sessionToken {
 
 func TestNewSessionToken(t *testing.T) {
 	d := sessionToken{}
-	s := newSessionToken().(*sessionToken)
+	s := sessionToken{}
+	s.initialize()
 
 	if s.CreatedAt == d.CreatedAt {
 		t.Errorf("CreatedAt has not be initialized")
@@ -44,13 +42,15 @@ func TestNewSessionToken(t *testing.T) {
 }
 
 func TestMarshalBinarySessionToken(t *testing.T) {
-	orig := newSessionToken().(*sessionToken)
+	orig := sessionToken{}
+	orig.initialize()
+
 	b, err := orig.MarshalBinary()
 	if err != nil {
 		t.Fatalf("failed with %v", err)
 	}
 
-	new := &sessionToken{}
+	new := sessionToken{}
 	new.UnmarshalBinary(b)
 
 	if !reflect.DeepEqual(orig, new) {
@@ -96,7 +96,8 @@ func TestParseSessionToken(t *testing.T) {
 		"MTIzNOlyXRxo6EHTiGJ1YbtU35MAAAABBbfrcwqBRRsAO9JdIIxlUgSWlvR0knstidChTyBP0Lg": createSessionToken("e9725d1c68e841d388627561bb54df93", 1, "1234"),
 	} {
 		rawToken, _ := base64.RawURLEncoding.DecodeString(token)
-		got, err := parseToken(key, sha256.New, rawToken)
+		got := &sessionToken{}
+		err := got.parseToken(key, sha256.New, rawToken)
 		if err != nil {
 			t.Errorf("parseToken failed: %v", err)
 		}
@@ -109,7 +110,6 @@ func TestParseSessionToken(t *testing.T) {
 
 func FuzzSessionToken(f *testing.F) {
 	for i := 0; i < 100; i++ {
-
 		f.Add(rand.Int())
 	}
 
@@ -126,7 +126,7 @@ func FuzzSessionToken(f *testing.F) {
 			t.Errorf("failed to setup test: %v", err)
 		}
 
-		orig := &sessionToken{
+		orig := sessionToken{
 			UUID: uuid.Must(uuid.NewRandomFromReader(gen)), CreatedAt: time.Unix(int64(gen.Uint32()), 0),
 			Salt: [4]byte(salt),
 		}
@@ -136,8 +136,8 @@ func FuzzSessionToken(f *testing.F) {
 			t.Fatalf("failed encoding session %v", err)
 		}
 
-		new, err := parseToken(key, sha256.New, token)
-		if err != nil {
+		new := sessionToken{}
+		if err := new.parseToken(key, sha256.New, token); err != nil {
 			t.Fatalf("failed parse token %v", err)
 		}
 
@@ -147,112 +147,23 @@ func FuzzSessionToken(f *testing.F) {
 	})
 }
 
-type sessionTokenParser func(key []byte, sig func() hash.Hash, token []byte) (sessionTokenizer, error)
-type sessionTokenGenerator func() sessionTokenizer
-type contextSessionKeyType struct{ string }
-
-var contextSessionToken = contextSessionKeyType{"session"}
-
-type sessionMiddleware struct {
-	key            []byte
-	tokenGenerator sessionTokenGenerator
-	tokenParser    sessionTokenParser
-	signer         func() hash.Hash
-}
-
-func (s *sessionMiddleware) setCookie(w http.ResponseWriter, token sessionTokenizer) {
-	sToken, err := token.signedToken(s.key, s.signer)
-	if err != nil {
-		panic(err) // signing token should not fail
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
-		Value:    base64.RawURLEncoding.EncodeToString(sToken),
-		Secure:   true,
-		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
-		Path:     "/",
-	})
-}
-
-func (s *sessionMiddleware) Handler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var token sessionTokenizer
-
-		cookie, err := r.Cookie("session")
-		if err != nil {
-			token = s.tokenGenerator()
-			s.setCookie(w, token)
-			ctx := context.WithValue(r.Context(), contextSessionToken, token)
-			next.ServeHTTP(w, r.WithContext(ctx))
-			return
-		}
-
-		rawToken, err := base64.RawURLEncoding.DecodeString(cookie.Value)
-		if err != nil {
-			token = s.tokenGenerator()
-			s.setCookie(w, token)
-			// ctx := context.WithValue(r.Context(), contextSessionToken, token)
-			// next.ServeHTTP(w, r.WithContext(ctx))
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		token, err = s.tokenParser(s.key, s.signer, rawToken)
-		if err != nil {
-			token = s.tokenGenerator()
-			s.setCookie(w, token)
-			ctx := context.WithValue(r.Context(), contextSessionToken, token)
-			next.ServeHTTP(w, r.WithContext(ctx))
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), contextSessionToken, token)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-
-}
-
-func mustSessionTokenFromContext(ctx context.Context) sessionTokenizer {
-	raw, ok := ctx.Value(contextSessionToken).(sessionTokenizer)
-	if !ok {
-		panic("session token does not exist")
-	}
-	return raw
-}
-
 type mockSession struct {
-	data []byte
+	data    []byte
+	signFn  func(s *mockSession, key []byte, sig func() hash.Hash) ([]byte, error)
+	parseFn func(s *mockSession, key []byte, sig func() hash.Hash, token []byte) error
+	initFn  func(*mockSession)
 }
 
-func parseMockedToken(key []byte, sig func() hash.Hash, token []byte) (sessionTokenizer, error) {
-	h := hmac.New(sig, key)
-	idx := len(token) - sig().Size()
-	if idx <= 0 {
-		return nil, fmt.Errorf("invalid")
-	}
-	payload, signature := token[:idx], token[idx:]
-
-	if _, err := h.Write(payload); err != nil {
-		return nil, err
-	}
-
-	if !hmac.Equal(signature, h.Sum(nil)) {
-		return nil, fmt.Errorf("token is tampered")
-	}
-
-	return &mockSession{data: payload}, nil
+func (s *mockSession) parseToken(key []byte, sig func() hash.Hash, token []byte) error {
+	return s.parseFn(s, key, sig, token)
 }
 
 func (s *mockSession) signedToken(key []byte, sig func() hash.Hash) ([]byte, error) {
-	h := hmac.New(sig, key)
+	return s.signFn(s, key, sig)
+}
 
-	if _, err := h.Write(s.data); err != nil {
-		return []byte{}, err
-	}
-
-	return append(s.data, h.Sum(nil)...), nil
+func (s *mockSession) initialize() {
+	s.initFn(s)
 }
 
 func foreachCookie(resp *http.Response, name string, fn func(*http.Cookie)) {
@@ -271,141 +182,391 @@ func newCustomRequest(fns ...func(*http.Request)) *http.Request {
 	return req
 }
 
-func randToken() []byte {
-	var r [4]byte
-	if _, err := crand.Read(r[:]); err != nil {
-		panic(err)
+func FuzzSessionMiddleware_responds_code(f *testing.F) {
+	for i := 0; i < 100; i++ {
+		f.Add(rand.Int())
 	}
 
-	return r[:]
+	f.Fuzz(func(t *testing.T, seed int) {
+
+		t.Run("new token must be created", func(t *testing.T) {
+			seed := seed
+			t.Log(seed)
+			t.Parallel()
+			gen := rand.New(rand.NewSource(int64(seed)))
+			var (
+				key   [4]byte
+				token [3]byte
+			)
+
+			gen.Read(key[:])
+
+			middleware := sessionMiddleware{
+				key:    key[:],
+				signer: sha1.New,
+				newToken: func() sessionTokenizer {
+					return &mockSession{
+						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+							if !bytes.Equal(key[:], k) {
+								t.Errorf("keys are not equal %#v != %#v", key[:], k)
+							}
+							return s.data, nil
+						},
+						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, token []byte) error {
+							s.data = token
+							return nil
+						},
+						initFn: func(s *mockSession) {
+							gen.Read(token[:])
+							s.data = token[:]
+						},
+					}
+				},
+			}
+
+			handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintln(w, "Ok")
+			}))
+
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, newCustomRequest())
+
+			resp := w.Result()
+			if resp.StatusCode != http.StatusOK {
+				t.FailNow()
+			}
+
+			counter := 0
+			foreachCookie(resp, "session", func(cookie *http.Cookie) {
+				counter++
+				if got, err := base64.RawURLEncoding.DecodeString(cookie.Value); !bytes.Equal(got, token[:]) {
+					t.Errorf("expected %#v but got %v (%#v) with %v", token[:], got, cookie.Value, err)
+				}
+			})
+
+			if counter != 1 {
+				t.Errorf("countend %d cookies instead of 1", counter)
+			}
+		})
+
+		t.Run("existing invalid token", func(t *testing.T) {
+			seed := seed
+			t.Log(seed)
+
+			t.Parallel()
+
+			gen := rand.New(rand.NewSource(int64(seed)))
+			var (
+				key          [4]byte
+				token        [3]byte
+				invalidToken [12]byte
+			)
+
+			gen.Read(key[:])
+
+			middleware := sessionMiddleware{
+				key:    key[:],
+				signer: sha1.New,
+				newToken: func() sessionTokenizer {
+					return &mockSession{
+						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+							if !bytes.Equal(key[:], k) {
+								t.Errorf("keys are not equal %#v != %#v", key[:], k)
+							}
+							return s.data, nil
+						},
+						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, token []byte) error {
+							return fmt.Errorf("invalid token")
+						},
+						initFn: func(s *mockSession) {
+							gen.Read(token[:])
+							s.data = token[:]
+						},
+					}
+				},
+			}
+
+			handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintln(w, "Ok")
+			}))
+
+			gen.Read(invalidToken[:])
+
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, newCustomRequest(func(r *http.Request) {
+				r.AddCookie(&http.Cookie{
+					Name:     "session",
+					Value:    string(invalidToken[:]),
+					Secure:   true,
+					HttpOnly: true,
+					SameSite: http.SameSiteStrictMode,
+					Path:     "/",
+				})
+			}))
+
+			resp := w.Result()
+			if resp.StatusCode != http.StatusOK {
+				t.FailNow()
+			}
+
+			counter := 0
+			foreachCookie(resp, "session", func(cookie *http.Cookie) {
+				counter++
+				if got, err := base64.RawURLEncoding.DecodeString(cookie.Value); !bytes.Equal(got, token[:]) {
+					t.Errorf("expected %#v but got %v (%#v) with %v", token[:], got, cookie.Value, err)
+				}
+			})
+
+			if counter != 1 {
+				t.Errorf("countend %d cookies instead of 1", counter)
+			}
+		})
+
+		t.Run("existing valid token", func(t *testing.T) {
+			seed := seed
+			t.Log(seed)
+
+			t.Parallel()
+
+			gen := rand.New(rand.NewSource(int64(seed)))
+			var (
+				key   [4]byte
+				token [3]byte
+			)
+
+			gen.Read(key[:])
+
+			middleware := sessionMiddleware{
+				key:    key[:],
+				signer: sha1.New,
+				newToken: func() sessionTokenizer {
+					return &mockSession{
+						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+							t.Error("this func does not need to be called")
+							return s.data, nil
+						},
+						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, got []byte) error {
+							if !bytes.Equal(token[:], got) {
+								t.Errorf("Got %#v instead of %#v.", got, token[:])
+							}
+							s.data = got
+							return nil
+						},
+						initFn: func(s *mockSession) {
+							gen.Read(token[:])
+							s.data = token[:]
+						},
+					}
+				},
+			}
+
+			handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintln(w, "Ok")
+			}))
+
+			gen.Read(token[:])
+
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, newCustomRequest(func(r *http.Request) {
+				r.AddCookie(&http.Cookie{
+					Name:     "session",
+					Value:    base64.RawURLEncoding.EncodeToString(token[:]),
+					Secure:   true,
+					HttpOnly: true,
+					SameSite: http.SameSiteStrictMode,
+					Path:     "/",
+				})
+			}))
+
+			resp := w.Result()
+			if resp.StatusCode != http.StatusOK {
+				t.FailNow()
+			}
+
+			counter := 0
+			foreachCookie(resp, "session", func(cookie *http.Cookie) {
+				counter++
+			})
+
+			if counter > 0 {
+				t.Errorf("countend %d cookies instead of zero", counter)
+			}
+		})
+	})
 }
-
-func TestSessionMiddleware(t *testing.T) {
-	type scenario struct {
-		token        []byte
-		req          *http.Request
-		handlerCheck http.HandlerFunc
-		respCheck    func(*http.Response)
+func FuzzSessionMiddleware_context(f *testing.F) {
+	for i := 0; i < 100; i++ {
+		f.Add(rand.Int())
 	}
 
-	key := []byte(".test.")
-	for _, testCase := range []scenario{
-		{
-			[]byte("abcd"),
-			newCustomRequest(),
-			func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintln(w, "Ok")
-				token := mustSessionTokenFromContext(r.Context())
-				if !bytes.Equal(token.(*mockSession).data, []byte("abcd")) {
-					t.Errorf("token are not equal: %#v", token)
-				}
-			},
-			func(resp *http.Response) {
-				if resp.StatusCode != http.StatusOK {
-					t.FailNow()
-				}
+	f.Fuzz(func(t *testing.T, seed int) {
 
-				counter := 0
-				foreachCookie(resp, "session", func(cookie *http.Cookie) {
-					counter++
-					if cookie.Value != "YWJjZP0k6SMGsr8u3svFp-yHN-LRwBbr" {
-						t.Errorf("cookie value invalid: %v", cookie.Value)
+		t.Run("new token must be created", func(t *testing.T) {
+			seed := seed
+			t.Parallel()
+			gen := rand.New(rand.NewSource(int64(seed)))
+			var (
+				key   [4]byte
+				token [3]byte
+			)
+
+			gen.Read(key[:])
+
+			middleware := sessionMiddleware{
+				key:    key[:],
+				signer: sha1.New,
+				newToken: func() sessionTokenizer {
+					return &mockSession{
+						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+							if !bytes.Equal(key[:], k) {
+								t.Errorf("keys are not equal %#v != %#v", key[:], k)
+							}
+							return s.data, nil
+						},
+						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, token []byte) error {
+							s.data = token
+							return nil
+						},
+						initFn: func(s *mockSession) {
+							gen.Read(token[:])
+							s.data = token[:]
+						},
 					}
-				})
+				},
+			}
 
-				if counter != 1 {
-					t.Errorf("countend %d cookies instead of 1", counter)
+			handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				sessionToken := mustSessionTokenFromContext(r.Context())
+				if !bytes.Equal(sessionToken.(*mockSession).data, token[:]) {
+					t.Errorf("Got %#v instead of %#v", sessionToken.(*mockSession).data, token[:])
 				}
-			},
-		}, {
-			[]byte("efgh"),
-			newCustomRequest(func(r *http.Request) {
+				fmt.Fprintln(w, "Ok")
+			}))
+
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, newCustomRequest())
+		})
+
+		t.Run("existing invalid token", func(t *testing.T) {
+			seed := seed
+			t.Log(seed)
+
+			t.Parallel()
+
+			gen := rand.New(rand.NewSource(int64(seed)))
+			var (
+				key          [4]byte
+				token        [3]byte
+				invalidToken [12]byte
+			)
+
+			gen.Read(key[:])
+
+			middleware := sessionMiddleware{
+				key:    key[:],
+				signer: sha1.New,
+				newToken: func() sessionTokenizer {
+					return &mockSession{
+						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+							if !bytes.Equal(key[:], k) {
+								t.Errorf("keys are not equal %#v != %#v", key[:], k)
+							}
+							return s.data, nil
+						},
+						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, token []byte) error {
+							return fmt.Errorf("invalid token")
+						},
+						initFn: func(s *mockSession) {
+							gen.Read(token[:])
+							s.data = token[:]
+						},
+					}
+				},
+			}
+
+			handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				sessionToken := mustSessionTokenFromContext(r.Context())
+				if !bytes.Equal(sessionToken.(*mockSession).data, token[:]) {
+					t.Errorf("Got %#v instead of %#v", sessionToken.(*mockSession).data, token[:])
+				}
+				fmt.Fprintln(w, "Ok")
+			}))
+
+			gen.Read(invalidToken[:])
+
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, newCustomRequest(func(r *http.Request) {
 				r.AddCookie(&http.Cookie{
 					Name:     "session",
-					Value:    "invalidToken",
+					Value:    string(invalidToken[:]),
 					Secure:   true,
 					HttpOnly: true,
 					SameSite: http.SameSiteStrictMode,
 					Path:     "/",
 				})
-			}),
-			func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintln(w, "Ok")
+			}))
+		})
 
-				token := mustSessionTokenFromContext(r.Context())
-				if !bytes.Equal(token.(*mockSession).data, []byte("efgh")) {
-					t.Errorf("token are not equal: %#v", token)
-				}
-			},
-			func(resp *http.Response) {
-				if resp.StatusCode != http.StatusOK {
-					t.FailNow()
-				}
+		t.Run("existing valid token", func(t *testing.T) {
+			seed := seed
+			t.Log(seed)
 
-				counter := 0
-				foreachCookie(resp, "session", func(cookie *http.Cookie) {
-					counter++
-					if cookie.Value != "ZWZnaEo_hvbODdyh623e7aVXM1NBh-yS" {
-						t.Errorf("cookie value invalid: %v", cookie.Value)
+			t.Parallel()
+
+			gen := rand.New(rand.NewSource(int64(seed)))
+			var (
+				key   [4]byte
+				token [3]byte
+			)
+
+			gen.Read(key[:])
+
+			middleware := sessionMiddleware{
+				key:    key[:],
+				signer: sha1.New,
+				newToken: func() sessionTokenizer {
+					return &mockSession{
+						signFn: func(s *mockSession, k []byte, sig func() hash.Hash) ([]byte, error) {
+							t.Error("this func does not need to be called")
+							return s.data, nil
+						},
+						parseFn: func(s *mockSession, key []byte, sig func() hash.Hash, got []byte) error {
+							if !bytes.Equal(token[:], got) {
+								t.Errorf("Got %#v instead of %#v.", got, token[:])
+							}
+							s.data = got
+							return nil
+						},
+						initFn: func(s *mockSession) {
+							t.Error("this func does not need to be called")
+							gen.Read(token[:])
+							s.data = token[:]
+						},
 					}
-				})
+				},
+			}
 
-				if counter != 1 {
-					t.Errorf("countend %d cookies instead of 1", counter)
+			handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				sessionToken := mustSessionTokenFromContext(r.Context())
+				if !bytes.Equal(sessionToken.(*mockSession).data, token[:]) {
+					t.Errorf("Got %#v instead of %#v", sessionToken.(*mockSession).data, token[:])
 				}
-			},
-		}, {
-			randToken(),
-			newCustomRequest(func(r *http.Request) {
+				fmt.Fprintln(w, "Ok")
+			}))
+
+			gen.Read(token[:])
+
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, newCustomRequest(func(r *http.Request) {
 				r.AddCookie(&http.Cookie{
 					Name:     "session",
-					Value:    "YWJjJONbU5tdpIfhErhiyEMCELIc47U",
+					Value:    base64.RawURLEncoding.EncodeToString(token[:]),
 					Secure:   true,
 					HttpOnly: true,
 					SameSite: http.SameSiteStrictMode,
 					Path:     "/",
 				})
-			}),
-			func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintln(w, "Ok")
-
-				token := mustSessionTokenFromContext(r.Context())
-				if !bytes.Equal(token.(*mockSession).data, []byte("abc")) {
-					t.Errorf("token are not equal: %#v", token)
-				}
-			},
-			func(resp *http.Response) {
-				if resp.StatusCode != http.StatusOK {
-					t.FailNow()
-				}
-				counter := 0
-				foreachCookie(resp, "session", func(cookie *http.Cookie) {
-					counter++
-				})
-
-				if counter > 0 {
-					t.Errorf("countend %d cookies instead of 0", counter)
-				}
-			},
-		},
-	} {
-		newMockSession := func() sessionTokenizer {
-			return &mockSession{testCase.token}
-		}
-
-		middleware := sessionMiddleware{
-			key:            key,
-			tokenGenerator: newMockSession,
-			tokenParser:    parseMockedToken,
-			signer:         sha1.New,
-		}
-
-		handler := middleware.Handler(http.HandlerFunc(testCase.handlerCheck))
-
-		w := httptest.NewRecorder()
-		handler.ServeHTTP(w, testCase.req)
-
-		resp := w.Result()
-		testCase.respCheck(resp)
-	}
+			}))
+		})
+	})
 }

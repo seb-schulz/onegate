@@ -1,11 +1,14 @@
 package server
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"hash"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,8 +20,22 @@ type sessionToken struct {
 	Salt      [4]byte
 }
 
-type sessionTokenizer interface {
+type sessionTokenSigner interface {
 	signedToken(key []byte, sig func() hash.Hash) ([]byte, error)
+}
+
+type sessionTokenParser interface {
+	parseToken(key []byte, sig func() hash.Hash, token []byte) error
+}
+
+type sessionTokenInitializer interface {
+	initialize()
+}
+
+type sessionTokenizer interface {
+	sessionTokenInitializer
+	sessionTokenSigner
+	sessionTokenParser
 }
 
 var sessionBinarySize = 0
@@ -28,17 +45,13 @@ func init() {
 	sessionBinarySize = len(x)
 }
 
-func newSessionToken() sessionTokenizer {
-	s := sessionToken{
-		UUID:      uuid.Must(uuid.NewRandom()),
-		CreatedAt: time.Now().Truncate(time.Second),
-	}
+func (s *sessionToken) initialize() {
+	s.UUID = uuid.Must(uuid.NewRandom())
+	s.CreatedAt = time.Now().Truncate(time.Second)
 
 	if _, err := rand.Read(s.Salt[:]); err != nil {
 		panic(err)
 	}
-
-	return &s
 }
 
 func (s *sessionToken) MarshalBinary() ([]byte, error) {
@@ -84,9 +97,9 @@ func (s *sessionToken) signedToken(key []byte, sig func() hash.Hash) ([]byte, er
 	return append(data, h.Sum(nil)...), nil
 }
 
-func parseToken(key []byte, sig func() hash.Hash, token []byte) (sessionTokenizer, error) {
+func (s *sessionToken) parseToken(key []byte, sig func() hash.Hash, token []byte) error {
 	if len(token) != sessionBinarySize+sig().Size() {
-		return nil, fmt.Errorf("token is tampered")
+		return fmt.Errorf("token is tampered")
 	}
 
 	// Split token into payload part and siganture part
@@ -94,17 +107,82 @@ func parseToken(key []byte, sig func() hash.Hash, token []byte) (sessionTokenize
 
 	h := hmac.New(sig, append(key, token[:4]...))
 	if _, err := h.Write(payload); err != nil {
-		return nil, err
+		return err
 	}
 
 	if !hmac.Equal(signature, h.Sum(nil)) {
-		return nil, fmt.Errorf("token is tampered")
+		return fmt.Errorf("token is tampered")
 	}
 
-	s := sessionToken{}
 	if err := s.UnmarshalBinary(payload); err != nil {
-		return nil, err
+		return err
 	}
 
-	return &s, nil
+	return nil
+}
+
+type contextSessionKeyType struct{ string }
+
+var contextSessionToken = contextSessionKeyType{"session"}
+
+type sessionMiddleware struct {
+	key      []byte
+	signer   func() hash.Hash
+	newToken func() sessionTokenizer
+}
+
+func (s *sessionMiddleware) setCookie(w http.ResponseWriter, token sessionTokenSigner) {
+	sToken, err := token.signedToken(s.key, s.signer)
+	if err != nil {
+		panic(err) // signing token should not fail
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    base64.RawURLEncoding.EncodeToString(sToken),
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+	})
+}
+
+func (s *sessionMiddleware) tokenFromCookie(req *http.Request, token sessionTokenParser) error {
+	cookie, err := req.Cookie("session")
+	if err != nil {
+		return err
+	}
+
+	rawToken, err := base64.RawURLEncoding.DecodeString(cookie.Value)
+	if err != nil {
+		return err
+	}
+
+	return token.parseToken(s.key, s.signer, rawToken)
+}
+
+func (s *sessionMiddleware) Handler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := s.newToken()
+
+		if err := s.tokenFromCookie(r, token); err != nil {
+			token.initialize()
+			s.setCookie(w, token)
+			ctx := context.WithValue(r.Context(), contextSessionToken, token)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), contextSessionToken, token)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+
+}
+
+func mustSessionTokenFromContext(ctx context.Context) sessionTokenizer {
+	raw, ok := ctx.Value(contextSessionToken).(sessionTokenizer)
+	if !ok {
+		panic("session token does not exist")
+	}
+	return raw
 }
