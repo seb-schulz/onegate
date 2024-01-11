@@ -43,13 +43,6 @@ type sessionTokenizer interface {
 	fmt.Stringer
 }
 
-var sessionBinarySize = 0
-
-func init() {
-	x, _ := (&sessionToken{}).MarshalBinary()
-	sessionBinarySize = len(x)
-}
-
 func newSessionToken() sessionTokenizer {
 	return &sessionToken{sig: sha256.New}
 }
@@ -106,13 +99,19 @@ func (s *sessionToken) sign(key []byte) ([]byte, error) {
 	return append(data, h.Sum(nil)...), nil
 }
 
+func (s *sessionToken) size() int {
+	x, _ := s.MarshalBinary()
+	return len(x)
+}
+
 func (s *sessionToken) parse(key []byte, token []byte) error {
-	if len(token) != sessionBinarySize+s.sig().Size() {
+	binSize := s.size()
+	if len(token) != binSize+s.sig().Size() {
 		return fmt.Errorf("token is tampered")
 	}
 
 	// Split token into payload part and siganture part
-	payload, signature := token[:sessionBinarySize], token[sessionBinarySize:]
+	payload, signature := token[:binSize], token[binSize:]
 
 	h := hmac.New(s.sig, append(key, token[:4]...))
 	if _, err := h.Write(payload); err != nil {
