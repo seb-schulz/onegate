@@ -178,7 +178,7 @@ func foreachCookie(resp *http.Response, name string, fn func(*http.Cookie)) {
 }
 
 func newCustomRequest(fns ...func(*http.Request)) *http.Request {
-	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	req := httptest.NewRequest("GET", "/foo", nil)
 	for _, fn := range fns {
 		fn(req)
 	}
@@ -461,7 +461,7 @@ func FuzzSessionMiddleware_context(f *testing.F) {
 
 			gen.Read(key[:])
 
-			middleware := sessionMiddleware{
+			sessionMiddleware := sessionMiddleware{
 				key: key[:],
 				newToken: func() sessionTokenizer {
 					return &mockSession{
@@ -482,13 +482,14 @@ func FuzzSessionMiddleware_context(f *testing.F) {
 				},
 			}
 
-			handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler := sessionMiddleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				sessionToken := mustSessionTokenFromContext(r.Context())
 				if !bytes.Equal(sessionToken.(*mockSession).data, token[:]) {
 					t.Errorf("Got %#v instead of %#v", sessionToken.(*mockSession).data, token[:])
 				}
 				fmt.Fprintln(w, "Ok")
 			}))
+			// handler = middleware.Logger(handler)
 
 			gen.Read(invalidToken[:])
 

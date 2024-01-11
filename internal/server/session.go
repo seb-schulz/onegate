@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/httplog/v2"
 	"github.com/google/uuid"
 )
 
@@ -163,7 +164,12 @@ func (s *sessionMiddleware) tokenFromCookie(req *http.Request, token sessionToke
 		return err
 	}
 
-	return token.parse(s.key, rawToken)
+	if err := token.parse(s.key, rawToken); err != nil {
+		logger := httplog.LogEntry(req.Context())
+		logger.Warn(fmt.Sprintf("cannot parse raw token: %v", err))
+		return err
+	}
+	return nil
 }
 
 func (s *sessionMiddleware) Handler(next http.Handler) http.Handler {
@@ -173,9 +179,6 @@ func (s *sessionMiddleware) Handler(next http.Handler) http.Handler {
 		if err := s.tokenFromCookie(r, token); err != nil {
 			token.initialize()
 			s.setCookie(w, token)
-			ctx := context.WithValue(r.Context(), contextSessionToken, token)
-			next.ServeHTTP(w, r.WithContext(ctx))
-			return
 		}
 
 		ctx := context.WithValue(r.Context(), contextSessionToken, token)
