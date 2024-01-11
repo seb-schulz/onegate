@@ -439,7 +439,7 @@ func FuzzSessionMiddleware_context(f *testing.F) {
 			}
 
 			handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				sessionToken := mustSessionTokenFromContext(r.Context())
+				sessionToken := MustSessionTokenFromContext(r.Context())
 				if !bytes.Equal(sessionToken.(*mockSession).data, token[:]) {
 					t.Errorf("Got %#v instead of %#v", sessionToken.(*mockSession).data, token[:])
 				}
@@ -487,7 +487,7 @@ func FuzzSessionMiddleware_context(f *testing.F) {
 			}
 
 			handler := sessionMiddleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				sessionToken := mustSessionTokenFromContext(r.Context())
+				sessionToken := MustSessionTokenFromContext(r.Context())
 				if !bytes.Equal(sessionToken.(*mockSession).data, token[:]) {
 					t.Errorf("Got %#v instead of %#v", sessionToken.(*mockSession).data, token[:])
 				}
@@ -549,7 +549,7 @@ func FuzzSessionMiddleware_context(f *testing.F) {
 			}
 
 			handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				sessionToken := mustSessionTokenFromContext(r.Context())
+				sessionToken := MustSessionTokenFromContext(r.Context())
 				if !bytes.Equal(sessionToken.(*mockSession).data, token[:]) {
 					t.Errorf("Got %#v instead of %#v", sessionToken.(*mockSession).data, token[:])
 				}

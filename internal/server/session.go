@@ -17,31 +17,42 @@ import (
 	"github.com/google/uuid"
 )
 
-type sessionToken struct {
-	UUID      uuid.UUID
-	CreatedAt time.Time
-	Salt      [4]byte
-	sig       func() hash.Hash
-}
+type (
+	sessionToken struct {
+		UUID      uuid.UUID
+		CreatedAt time.Time
+		Salt      [4]byte
+		sig       func() hash.Hash
+	}
 
-type sessionTokenSigner interface {
-	sign(key []byte) ([]byte, error)
-}
+	sessionTokenSigner interface {
+		sign(key []byte) ([]byte, error)
+	}
 
-type sessionTokenParser interface {
-	parse(key []byte, token []byte) error
-}
+	sessionTokenParser interface {
+		parse(key []byte, token []byte) error
+	}
 
-type sessionTokenInitializer interface {
-	initialize()
-}
+	sessionTokenInitializer interface {
+		initialize()
+	}
 
-type sessionTokenizer interface {
-	sessionTokenInitializer
-	sessionTokenSigner
-	sessionTokenParser
-	fmt.Stringer
-}
+	sessionTokenizer interface {
+		sessionTokenInitializer
+		sessionTokenSigner
+		sessionTokenParser
+		fmt.Stringer
+	}
+
+	contextSessionKeyType struct{ string }
+
+	sessionMiddleware struct {
+		key      []byte
+		newToken func() sessionTokenizer
+	}
+)
+
+var contextSessionToken = contextSessionKeyType{"session"}
 
 func newSessionToken() sessionTokenizer {
 	return &sessionToken{sig: sha256.New}
@@ -133,15 +144,6 @@ func (s *sessionToken) String() string {
 	return fmt.Sprint(s.UUID)
 }
 
-type contextSessionKeyType struct{ string }
-
-var contextSessionToken = contextSessionKeyType{"session"}
-
-type sessionMiddleware struct {
-	key      []byte
-	newToken func() sessionTokenizer
-}
-
 func (s *sessionMiddleware) setCookie(w http.ResponseWriter, token sessionTokenSigner) {
 	sToken, err := token.sign(s.key)
 	if err != nil {
@@ -193,10 +195,15 @@ func (s *sessionMiddleware) Handler(next http.Handler) http.Handler {
 
 }
 
-func mustSessionTokenFromContext(ctx context.Context) sessionTokenizer {
+func MustSessionTokenFromContext(ctx context.Context) sessionTokenizer {
 	raw, ok := ctx.Value(contextSessionToken).(sessionTokenizer)
 	if !ok {
 		panic("session token does not exist")
 	}
 	return raw
+}
+
+func defaultSessionMiddleware(key []byte) func(next http.Handler) http.Handler {
+	s := sessionMiddleware{key, newSessionToken}
+	return s.Handler
 }
