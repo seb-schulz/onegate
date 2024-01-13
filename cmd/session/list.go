@@ -39,17 +39,12 @@ var listCmd = &cobra.Command{
 				deletedAtStr = deletedAt.(time.Time).Format(time.RFC3339)
 			}
 
-			strUserID := "null"
-			if session.UserID != nil {
-				strUserID = fmt.Sprint(*session.UserID)
-			}
-
 			isActive := ""
 			if session.IsActive() {
 				isActive = "\xE2\x9C\x94"
 			}
 
-			fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%v\n", session.ID, strUserID, session.CreatedAt.Format(time.RFC3339), session.UpdatedAt.Format(time.RFC3339), deletedAtStr, isActive)
+			fmt.Fprintf(w, "%v\t%d\t%s\t%s\t%s\t%v\n", session.ID, session.UserID, session.CreatedAt.Format(time.RFC3339), session.UpdatedAt.Format(time.RFC3339), deletedAtStr, isActive)
 		}
 		w.Flush()
 		return nil

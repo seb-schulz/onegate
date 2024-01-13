@@ -29,7 +29,6 @@ type Credential {
 type User {
   name: String!
   displayName: String!
-
 }
 
 type Session {

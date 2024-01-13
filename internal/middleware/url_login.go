@@ -3,16 +3,17 @@ package middleware
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/httplog/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/model"
+	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"gorm.io/gorm"
 )
 
@@ -58,26 +59,27 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer http.Redirect(w, r, config.Config.BaseUrl.String(), http.StatusSeeOther)
 
+		logger := httplog.LogEntry(r.Context())
 		signedToken := chi.URLParam(r, "token")
 		token, err := parseToken(signedToken)
 		if err != nil {
-			log.Println(err)
+			logger.Warn(fmt.Sprintf("cannot parse signed token: %v", err))
 			return
 		}
 
 		uID, err := token.Claims.(*loginClaims).UserID()
 		if err != nil {
-			log.Println(err)
+			logger.Warn(fmt.Sprintf("cannot get user ID: %v", err))
 			return
 		}
-		session := SessionFromContext(r.Context())
 
 		if err := db.Transaction(func(tx *gorm.DB) error {
 			user := model.User{}
 			tx.First(&user, "id = ?", uID)
 
-			session.User = &user
-			tx.Save(session)
+			if _, err := sessionmgr.ContextWithTransaction(r.Context(), tx, model.LoginUser(&user, nil)); err != nil {
+				return err
+			}
 
 			return nil
 		}); err != nil {

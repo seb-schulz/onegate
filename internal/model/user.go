@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"gorm.io/gorm"
 )
 
@@ -42,29 +43,46 @@ func (u User) WebAuthnIcon() string {
 	return ""
 }
 
-func CreateUser(user *User, session *Session) func(tx *gorm.DB) error {
-	return func(tx *gorm.DB) error {
-		if user == nil || session == nil {
-			return fmt.Errorf("user and session must be provided")
-		}
+func (u *User) IDStr() string {
+	return fmt.Sprint(u.ID)
+}
 
-		if session.UserID != nil {
-			return fmt.Errorf("session assigned to user")
-		}
+func CreateUser(name string) func(tx *gorm.DB, token *sessionmgr.Token) (*User, error) {
+	return func(tx *gorm.DB, token *sessionmgr.Token) (*User, error) {
+		user := User{Name: name}
 
 		if r := tx.Create(&user); r.Error != nil {
-			return r.Error
+			return nil, r.Error
 		}
 
-		session.User = user
-		if r := tx.Save(&session); r.Error != nil {
-			return r.Error
+		if r := tx.FirstOrCreate(&Session{
+			ID:   token.UUID,
+			User: user,
+		}); r.Error != nil {
+			return nil, r.Error
 		}
-		return nil
+
+		return &user, nil
 	}
 }
 
-func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+func LoginUser(user *User, cred *Credential) func(tx *gorm.DB, token *sessionmgr.Token) (*User, error) {
+	return func(tx *gorm.DB, token *sessionmgr.Token) (*User, error) {
+		if r := tx.FirstOrCreate(&Session{
+			ID:   token.UUID,
+			User: *user,
+		}); r.Error != nil {
+			return nil, r.Error
+		}
+		if cred != nil {
+			tx.Save(cred)
+		}
+
+		return user, nil
+	}
+}
+
+func (u *User) BeforeCreate(tx *gorm.DB) error {
 	if len(u.AuthnID) > 0 {
 		return nil
 	}

@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	softDelete  bool
-	dryRun      bool
-	inactive    bool
-	withoutUser bool
+	softDelete bool
+	dryRun     bool
+	inactive   bool
+	deleted    bool
 )
 
 func init() {
@@ -23,7 +23,7 @@ func init() {
 	deleteCmd.Flags().BoolVar(&softDelete, "soft-delete", false, "Only soft-delete entries")
 	deleteCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Print SQL statement instead of executing it")
 	deleteCmd.Flags().BoolVar(&inactive, "inactive", false, fmt.Sprintf("Delete all sessions older than %v", config.Config.Session.ActiveFor))
-	deleteCmd.Flags().BoolVar(&withoutUser, "without-user", false, "exclude session with logged in users")
+	deleteCmd.Flags().BoolVar(&deleted, "deleted", false, "Delete all soft-deleted entriess")
 }
 
 var deleteCmd = &cobra.Command{
@@ -38,12 +38,16 @@ var deleteCmd = &cobra.Command{
 
 		tx := db.Session(&gorm.Session{DryRun: dryRun, AllowGlobalUpdate: true})
 
-		if !softDelete {
+		if softDelete && deleted {
+			return fmt.Errorf("soft-delete and delete flags are mutually exclusive")
+		} else if softDelete && !deleted {
+			// continue with current scope
+		} else if !softDelete && deleted {
+			tx = tx.Unscoped().Where("deleted_at IS NOT NULL")
+		} else if !softDelete && !deleted {
 			tx = tx.Unscoped()
-		}
-
-		if withoutUser {
-			tx.Where("user_id IS NULL")
+		} else {
+			panic("all cases should be covered")
 		}
 
 		if inactive {

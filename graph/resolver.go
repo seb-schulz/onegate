@@ -2,6 +2,8 @@ package graph
 
 import (
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/seb-schulz/onegate/internal/model"
+	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"gorm.io/gorm"
 )
 
@@ -12,4 +14,5 @@ import (
 type Resolver struct {
 	DB       *gorm.DB
 	WebAuthn *webauthn.WebAuthn
+	UserMgr  *sessionmgr.StorageManager[*model.User]
 }

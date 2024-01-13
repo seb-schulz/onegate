@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,8 +14,11 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/seb-schulz/onegate/graph"
 	"github.com/seb-schulz/onegate/internal/middleware"
+	"github.com/seb-schulz/onegate/internal/model"
+	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"github.com/seb-schulz/onegate/internal/ui"
 	"github.com/seb-schulz/onegate/internal/utils"
+	"gorm.io/gorm"
 )
 
 type (
@@ -26,9 +30,10 @@ type (
 	}
 
 	RouterConfig struct {
-		DbDebug  bool
-		Webauthn webauthn.Config
-		Limit    RouterLimitConfig
+		DbDebug    bool
+		Webauthn   webauthn.Config
+		Limit      RouterLimitConfig
+		SessionKey []byte
 	}
 
 	ServerConfig struct {
@@ -59,13 +64,26 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Logger)
 		r.Use(httprate.LimitByRealIP(config.Limit.RequestLimit, config.Limit.WindowLength))
-		r.Use(middleware.SessionMiddleware(db))
+		r.Use(sessionmgr.DefaultMiddleware(config.SessionKey))
+
+		userMgr := sessionmgr.NewStorage[*model.User]("user", func(t *sessionmgr.Token) (*model.User, error) {
+			s := model.Session{ID: t.UUID}
+			r := db.Preload("User").First(&s)
+			if errors.Is(r.Error, gorm.ErrRecordNotFound) {
+				return nil, r.Error
+			}
+			return &s.User, nil
+		})
 
 		r.Get("/login/{token}", middleware.LoginHandler(db))
 
-		srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: db, WebAuthn: webAuthn}}))
+		srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
+			DB:       db,
+			WebAuthn: webAuthn,
+			UserMgr:  userMgr,
+		}}))
 
-		r.Handle("/query", csrfMitigationMiddleware(srv))
+		r.Handle("/query", userMgr.Handler(csrfMitigationMiddleware(srv)))
 		addGraphQLPlayground(r)
 		r.Handle("/*", ui.Template("index.html.tmpl", func() any {
 			return map[string]any{}

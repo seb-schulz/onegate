@@ -4,14 +4,16 @@ import (
 	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/google/uuid"
+	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
 type AuthSession struct {
-	ID        uint `gorm:"primarykey"`
+	ID        uuid.UUID `gorm:"primarykey"`
 	CreatedAt time.Time
-	SessionID uint
+	UpdatedAt time.Time
 	Data      datatypes.JSONType[webauthn.SessionData]
 }
 
@@ -19,17 +21,19 @@ func (a AuthSession) Value() webauthn.SessionData {
 	return a.Data.Data()
 }
 
-func CreateAuthSession(tx *gorm.DB, sID uint, data webauthn.SessionData) error {
-	if r := tx.Create(&AuthSession{SessionID: sID, Data: datatypes.NewJSONType(data)}); r.Error != nil {
-		return r.Error
+func CreateAuthSession(data *webauthn.SessionData) func(*gorm.DB, *sessionmgr.Token) (*AuthSession, error) {
+	return func(tx *gorm.DB, token *sessionmgr.Token) (*AuthSession, error) {
+		authSession := AuthSession{ID: token.UUID, Data: datatypes.NewJSONType(*data)}
+		if r := tx.Save(&authSession); r.Error != nil {
+			return nil, r.Error
+		}
+		return &authSession, nil
 	}
-
-	return nil
 }
 
-func FirstAuthSessionBySession(tx *gorm.DB, sID uint) (*AuthSession, error) {
-	auth_session := AuthSession{}
-	if result := tx.Order("created_at DESC").First(&auth_session, "session_id = ?", sID); result.Error != nil {
+func FirstAuthSession(tx *gorm.DB, token *sessionmgr.Token) (*AuthSession, error) {
+	auth_session := AuthSession{ID: token.UUID}
+	if result := tx.Order("created_at DESC").First(&auth_session); result.Error != nil {
 		return nil, result.Error
 	}
 	return &auth_session, nil
