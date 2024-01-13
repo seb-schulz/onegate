@@ -22,10 +22,6 @@ var migrateCmd = &cobra.Command{
 			return err
 		}
 
-		// TODO: needs to be remove when roled out
-		db.Migrator().DropTable("auth_sessions")
-		db.Migrator().DropTable("sessions")
-
 		if err := db.AutoMigrate(model.User{}, model.Credential{}, model.Session{}, model.AuthSession{}); err != nil {
 			return fmt.Errorf("migration failed: %v", err)
 		}
