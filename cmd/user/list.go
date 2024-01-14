@@ -6,8 +6,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/seb-schulz/onegate/internal/database"
 	"github.com/seb-schulz/onegate/internal/model"
-	"github.com/seb-schulz/onegate/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +19,7 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all users",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := utils.OpenDatabase(utils.WithDebugOption(debug))
+		db, err := database.Open(database.WithDebug(debug))
 		if err != nil {
 			return err
 		}

@@ -17,7 +17,7 @@ func (r *mutationResolver) beginRegistration(ctx context.Context, user webauthn.
 		return nil, err
 	}
 
-	if _, err := sessionmgr.ContextWithTransaction[*model.AuthSession](ctx, r.DB, model.CreateAuthSession(webauthn_session)); err != nil {
+	if _, err := sessionmgr.ContextWithToken[*model.AuthSession](ctx, model.CreateAuthSession(webauthn_session)); err != nil {
 		return nil, fmt.Errorf("cannot start registration: %v", err)
 	}
 	return options, nil

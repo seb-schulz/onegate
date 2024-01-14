@@ -13,11 +13,11 @@ import (
 	"github.com/go-chi/httprate"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/seb-schulz/onegate/graph"
+	"github.com/seb-schulz/onegate/internal/database"
 	"github.com/seb-schulz/onegate/internal/middleware"
 	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"github.com/seb-schulz/onegate/internal/ui"
-	"github.com/seb-schulz/onegate/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -49,7 +49,7 @@ const (
 )
 
 func newRouter(config *RouterConfig) (http.Handler, error) {
-	db, err := utils.OpenDatabase(utils.WithDebugOption(config.DbDebug))
+	db, err := database.Open(database.WithDebug(config.DbDebug))
 	if err != nil {
 		return nil, err
 	}
@@ -64,6 +64,7 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Logger)
 		r.Use(httprate.LimitByRealIP(config.Limit.RequestLimit, config.Limit.WindowLength))
+		r.Use(database.Middleware(db))
 		r.Use(sessionmgr.DefaultMiddleware(config.SessionKey))
 
 		userMgr := sessionmgr.NewStorage[*model.User]("user", func(t *sessionmgr.Token) (*model.User, error) {

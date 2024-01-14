@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/seb-schulz/onegate/internal/config"
+	"github.com/seb-schulz/onegate/internal/database"
 	"github.com/seb-schulz/onegate/internal/model"
-	"github.com/seb-schulz/onegate/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +17,7 @@ var migrateCmd = &cobra.Command{
 	Use:   "migrate",
 	Short: "Migrate database",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := utils.OpenDatabase(utils.WithDebugOption(config.Config.DB.Debug))
+		db, err := database.Open(database.WithDebug(config.Config.DB.Debug))
 		if err != nil {
 			return err
 		}

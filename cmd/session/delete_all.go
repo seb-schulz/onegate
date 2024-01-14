@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/seb-schulz/onegate/internal/config"
+	"github.com/seb-schulz/onegate/internal/database"
 	"github.com/seb-schulz/onegate/internal/model"
-	"github.com/seb-schulz/onegate/internal/utils"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
@@ -31,7 +31,7 @@ var deleteCmd = &cobra.Command{
 	Aliases: []string{"rma"},
 	Short:   "(Soft-)delete user",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := utils.OpenDatabase(utils.WithDebugOption(debug))
+		db, err := database.Open(database.WithDebug(debug))
 		if err != nil {
 			return err
 		}

@@ -1,12 +1,12 @@
 package model
 
 import (
-	"github.com/seb-schulz/onegate/internal/utils"
+	"github.com/seb-schulz/onegate/internal/database"
 	"gorm.io/gorm"
 )
 
 func openDb() *gorm.DB {
-	db, err := utils.OpenDatabase()
+	db, err := database.Open()
 	if err != nil {
 		panic(err)
 	}

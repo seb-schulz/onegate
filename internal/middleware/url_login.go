@@ -77,7 +77,7 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 			user := model.User{}
 			tx.First(&user, "id = ?", uID)
 
-			if _, err := sessionmgr.ContextWithTransaction(r.Context(), tx, model.LoginUser(&user, nil)); err != nil {
+			if _, err := sessionmgr.ContextWithToken(r.Context(), model.LoginUser(&user, nil)); err != nil {
 				return err
 			}
 

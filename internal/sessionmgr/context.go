@@ -3,6 +3,7 @@ package sessionmgr
 import (
 	"context"
 
+	"github.com/seb-schulz/onegate/internal/database"
 	"gorm.io/gorm"
 )
 
@@ -18,12 +19,8 @@ func FromContext(ctx context.Context) *Token {
 	return raw
 }
 
-func ContextWithTransaction[T any](ctx context.Context, tx *gorm.DB, fn func(*gorm.DB, *Token) (T, error)) (T, error) {
-	var result T
-	err := tx.Transaction(func(tx *gorm.DB) error {
-		var err error
-		result, err = fn(tx, FromContext(ctx))
-		return err
+func ContextWithToken[T any](ctx context.Context, fn func(*gorm.DB, *Token) (T, error)) (T, error) {
+	return database.Transaction(ctx, func(tx *gorm.DB) (T, error) {
+		return fn(tx, FromContext(ctx))
 	})
-	return result, err
 }

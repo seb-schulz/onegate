@@ -37,9 +37,8 @@ func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protoc
 		return nil, fmt.Errorf("currently logged in with an user")
 	}
 
-	return sessionmgr.ContextWithTransaction(ctx, r.DB, func(tx *gorm.DB, token *sessionmgr.Token) (*protocol.CredentialCreation, error) {
-		userCreationFn := dbmodel.CreateUser(name)
-		user, err := sessionmgr.ContextWithTransaction(ctx, tx, userCreationFn)
+	return sessionmgr.ContextWithToken(ctx, func(tx *gorm.DB, token *sessionmgr.Token) (*protocol.CredentialCreation, error) {
+		user, err := dbmodel.CreateUser(name)(tx, token)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +98,7 @@ func (r *mutationResolver) AddCredential(ctx context.Context, body string) (bool
 		return false, fmt.Errorf("user not logged in")
 	}
 
-	auth_session, err := sessionmgr.ContextWithTransaction[*dbmodel.AuthSession](ctx, r.DB, dbmodel.FirstAuthSession)
+	auth_session, err := sessionmgr.ContextWithToken[*dbmodel.AuthSession](ctx, dbmodel.FirstAuthSession)
 	if err != nil {
 		return false, fmt.Errorf("registration failed")
 	}
@@ -180,7 +179,7 @@ func (r *mutationResolver) BeginLogin(ctx context.Context) (*protocol.Credential
 	if err != nil {
 		return nil, err
 	}
-	if _, err := sessionmgr.ContextWithTransaction[*dbmodel.AuthSession](ctx, r.DB, dbmodel.CreateAuthSession(webauthn_session)); err != nil {
+	if _, err := sessionmgr.ContextWithToken[*dbmodel.AuthSession](ctx, dbmodel.CreateAuthSession(webauthn_session)); err != nil {
 		return nil, fmt.Errorf("cannot start login: %v", err)
 	}
 
@@ -195,7 +194,7 @@ func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool
 		return false, fmt.Errorf("user is logged-in")
 	}
 
-	auth_session, err := sessionmgr.ContextWithTransaction(ctx, r.DB, dbmodel.FirstAuthSession)
+	auth_session, err := sessionmgr.ContextWithToken(ctx, dbmodel.FirstAuthSession)
 	if err != nil {
 		return false, fmt.Errorf("login failed")
 	}
@@ -233,7 +232,7 @@ func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool
 	if err := r.DB.Transaction(func(tx *gorm.DB) error {
 		tx.Delete(&auth_session)
 
-		if _, err := sessionmgr.ContextWithTransaction(ctx, tx, dbmodel.LoginUser(&user, &db_cred)); err != nil {
+		if _, err := sessionmgr.ContextWithToken(ctx, dbmodel.LoginUser(&user, &db_cred)); err != nil {
 			return err
 		}
 		return nil
