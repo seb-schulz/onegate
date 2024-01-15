@@ -18,11 +18,11 @@ type (
 
 	StorageManager[T entity] struct {
 		entityType string
-		fetch      func(*Token) (T, error)
+		fetch      func(ctx context.Context) (T, error)
 	}
 )
 
-func NewStorage[T entity](entityType string, fetchFn func(*Token) (T, error)) *StorageManager[T] {
+func NewStorage[T entity](entityType string, fetchFn func(ctx context.Context) (T, error)) *StorageManager[T] {
 	return &StorageManager[T]{
 		entityType: entityType,
 		fetch:      fetchFn,
@@ -32,7 +32,7 @@ func NewStorage[T entity](entityType string, fetchFn func(*Token) (T, error)) *S
 func (sm *StorageManager[T]) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		obj, err := sm.fetch(FromContext(ctx))
+		obj, err := sm.fetch(ctx)
 		if err != nil {
 			logger := httplog.LogEntry(ctx)
 			logger.Info(fmt.Sprintf("cannot get %v: %v", sm.entityType, err))

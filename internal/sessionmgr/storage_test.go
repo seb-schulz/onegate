@@ -77,8 +77,8 @@ func TestStorageFetcher(t *testing.T) {
 
 	sm := StorageManager[*mockEntity]{
 		entityType: "mock",
-		fetch: func(t *Token) (*mockEntity, error) {
-			mock, ok := fakeStorage[t.UUID]
+		fetch: func(ctx context.Context) (*mockEntity, error) {
+			mock, ok := fakeStorage[FromContext(ctx).UUID]
 			if !ok {
 				return nil, errNotFound
 			}

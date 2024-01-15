@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -47,6 +48,15 @@ func (u User) WebAuthnIcon() string {
 
 func (u *User) IDStr() string {
 	return fmt.Sprint(u.ID)
+}
+
+func FirstUser(ctx context.Context) (*User, error) {
+	s := Session{ID: sessionmgr.FromContext(ctx).UUID}
+	r := database.FromContext(ctx).Preload("User").First(&s)
+	if errors.Is(r.Error, gorm.ErrRecordNotFound) {
+		return nil, r.Error
+	}
+	return &s.User, nil
 }
 
 func CreateUser(ctx context.Context, name string) (*User, error) {

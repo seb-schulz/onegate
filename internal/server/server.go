@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,7 +17,6 @@ import (
 	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"github.com/seb-schulz/onegate/internal/ui"
-	"gorm.io/gorm"
 )
 
 type (
@@ -67,14 +65,7 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 		r.Use(database.Middleware(db))
 		r.Use(sessionmgr.DefaultMiddleware(config.SessionKey))
 
-		userMgr := sessionmgr.NewStorage[*model.User]("user", func(t *sessionmgr.Token) (*model.User, error) {
-			s := model.Session{ID: t.UUID}
-			r := db.Preload("User").First(&s)
-			if errors.Is(r.Error, gorm.ErrRecordNotFound) {
-				return nil, r.Error
-			}
-			return &s.User, nil
-		})
+		userMgr := sessionmgr.NewStorage[*model.User]("user", model.FirstUser)
 
 		r.Get("/login/{token}", middleware.LoginHandler(db))
 
