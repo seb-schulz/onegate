@@ -13,7 +13,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/model"
-	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"gorm.io/gorm"
 )
 
@@ -73,17 +72,9 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := db.Transaction(func(tx *gorm.DB) error {
-			user := model.User{}
-			tx.First(&user, "id = ?", uID)
-
-			if _, err := sessionmgr.ContextWithToken(r.Context(), model.LoginUser(&user, nil)); err != nil {
-				return err
-			}
-
-			return nil
-		}); err != nil {
-			panic(err)
+		if err := model.LoginUser(r.Context(), model.LoginOpt{UserID: &uID}); err != nil {
+			logger.Warn(fmt.Sprintf("cannot login usere: %v", err))
+			return
 		}
 
 		// w.Write([]byte(`<!DOCTYPE html>

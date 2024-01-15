@@ -1,10 +1,12 @@
 package model
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/seb-schulz/onegate/internal/database"
 	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"gorm.io/gorm"
 )
@@ -47,39 +49,78 @@ func (u *User) IDStr() string {
 	return fmt.Sprint(u.ID)
 }
 
-func CreateUser(name string) func(tx *gorm.DB, token *sessionmgr.Token) (*User, error) {
-	return func(tx *gorm.DB, token *sessionmgr.Token) (*User, error) {
+func CreateUser(ctx context.Context, name string) (*User, error) {
+	return database.Transaction(ctx, func(tx *gorm.DB) (*User, error) {
 		user := User{Name: name}
 
 		if r := tx.Create(&user); r.Error != nil {
 			return nil, r.Error
 		}
 
+		token := sessionmgr.FromContext(ctx)
 		if r := tx.FirstOrCreate(&Session{
 			ID:   token.UUID,
 			User: user,
 		}); r.Error != nil {
 			return nil, r.Error
 		}
-
 		return &user, nil
-	}
+	})
 }
 
-func LoginUser(user *User, cred *Credential) func(tx *gorm.DB, token *sessionmgr.Token) (*User, error) {
-	return func(tx *gorm.DB, token *sessionmgr.Token) (*User, error) {
-		if r := tx.FirstOrCreate(&Session{
-			ID:   token.UUID,
-			User: *user,
-		}); r.Error != nil {
-			return nil, r.Error
-		}
-		if cred != nil {
-			tx.Save(cred)
+type LoginOpt struct {
+	UserID     *uint
+	Credential *Credential
+	Tx         *gorm.DB
+}
+
+func (opt *LoginOpt) setUserID(userID *uint) error {
+	if opt.UserID != nil {
+		return opt.verifyUserID(userID)
+	}
+	*userID = opt.Credential.UserID
+	return nil
+}
+
+func (opt *LoginOpt) verifyUserID(userID *uint) error {
+	r := opt.Tx.Model(&User{}).Where("id = ?", *opt.UserID).Limit(1).Pluck("id", userID)
+	if r.RowsAffected != 1 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+func LoginUser(ctx context.Context, opt LoginOpt) error {
+	if opt.UserID == nil && opt.Credential == nil {
+		return fmt.Errorf("either UserID or Credetial must be defined")
+	}
+
+	if opt.UserID != nil && opt.Credential != nil {
+		return fmt.Errorf("UserID and Credential are mutually exclusive")
+	}
+
+	if opt.Tx == nil {
+		opt.Tx = database.FromContext(ctx)
+	}
+
+	if err := opt.Tx.Transaction(func(tx *gorm.DB) error {
+		var userID uint
+		if err := opt.setUserID(&userID); err != nil {
+			return err
 		}
 
-		return user, nil
+		if r := tx.FirstOrCreate(&Session{
+			ID:     sessionmgr.FromContext(ctx).UUID,
+			UserID: userID,
+		}); r.Error != nil {
+			return r.Error
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
+
+	return nil
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {

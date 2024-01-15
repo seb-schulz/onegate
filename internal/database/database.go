@@ -56,9 +56,27 @@ func FromContext(ctx context.Context) *gorm.DB {
 	return raw
 }
 
-func Transaction[T any](ctx context.Context, fn func(*gorm.DB) (T, error)) (T, error) {
+type transactionOpts struct {
+	tx *gorm.DB
+}
+
+type TransactionOptFunc func(*transactionOpts)
+
+func WithNestedTransaction(tx *gorm.DB) TransactionOptFunc {
+	return func(to *transactionOpts) {
+		to.tx = tx
+	}
+}
+
+func Transaction[T any](ctx context.Context, fn func(*gorm.DB) (T, error), opts ...TransactionOptFunc) (T, error) {
 	var result T
-	err := FromContext(ctx).Transaction(func(tx *gorm.DB) error {
+	transactionOpts := transactionOpts{FromContext(ctx)}
+
+	for _, opt := range opts {
+		opt(&transactionOpts)
+	}
+
+	err := transactionOpts.tx.Transaction(func(tx *gorm.DB) error {
 		var err error
 		result, err = fn(tx)
 		return err

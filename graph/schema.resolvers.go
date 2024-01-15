@@ -16,7 +16,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/seb-schulz/onegate/internal/config"
 	dbmodel "github.com/seb-schulz/onegate/internal/model"
-	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"gorm.io/gorm"
 )
 
@@ -37,13 +36,12 @@ func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protoc
 		return nil, fmt.Errorf("currently logged in with an user")
 	}
 
-	return sessionmgr.ContextWithToken(ctx, func(tx *gorm.DB, token *sessionmgr.Token) (*protocol.CredentialCreation, error) {
-		user, err := dbmodel.CreateUser(name)(tx, token)
-		if err != nil {
-			return nil, err
-		}
-		return r.beginRegistration(ctx, user)
-	})
+	user, err := dbmodel.CreateUser(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	return r.beginRegistration(ctx, user)
+
 }
 
 // UpdateMe is the resolver for the updateMe field.
@@ -98,7 +96,7 @@ func (r *mutationResolver) AddCredential(ctx context.Context, body string) (bool
 		return false, fmt.Errorf("user not logged in")
 	}
 
-	auth_session, err := sessionmgr.ContextWithToken[*dbmodel.AuthSession](ctx, dbmodel.FirstAuthSession)
+	auth_session, err := dbmodel.FirstAuthSession(ctx)
 	if err != nil {
 		return false, fmt.Errorf("registration failed")
 	}
@@ -179,7 +177,8 @@ func (r *mutationResolver) BeginLogin(ctx context.Context) (*protocol.Credential
 	if err != nil {
 		return nil, err
 	}
-	if _, err := sessionmgr.ContextWithToken[*dbmodel.AuthSession](ctx, dbmodel.CreateAuthSession(webauthn_session)); err != nil {
+
+	if err := dbmodel.CreateAuthSession(ctx, webauthn_session); err != nil {
 		return nil, fmt.Errorf("cannot start login: %v", err)
 	}
 
@@ -194,7 +193,7 @@ func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool
 		return false, fmt.Errorf("user is logged-in")
 	}
 
-	auth_session, err := sessionmgr.ContextWithToken(ctx, dbmodel.FirstAuthSession)
+	auth_session, err := dbmodel.FirstAuthSession(ctx)
 	if err != nil {
 		return false, fmt.Errorf("login failed")
 	}
@@ -232,9 +231,10 @@ func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool
 	if err := r.DB.Transaction(func(tx *gorm.DB) error {
 		tx.Delete(&auth_session)
 
-		if _, err := sessionmgr.ContextWithToken(ctx, dbmodel.LoginUser(&user, &db_cred)); err != nil {
-			return err
+		if err := dbmodel.LoginUser(ctx, dbmodel.LoginOpt{Credential: &db_cred, Tx: tx}); err != nil {
+			return fmt.Errorf("login failed")
 		}
+
 		return nil
 	}); err != nil {
 		panic(err)
@@ -300,8 +300,7 @@ func (r *sessionResolver) ID(ctx context.Context, obj *dbmodel.Session) (string,
 
 // IsCurrent is the resolver for the isCurrent field.
 func (r *sessionResolver) IsCurrent(ctx context.Context, obj *dbmodel.Session) (bool, error) {
-	token := sessionmgr.FromContext(ctx)
-	return obj.ID == token.UUID, nil
+	return obj.IsCurrent(ctx), nil
 }
 
 // Credential returns CredentialResolver implementation.
