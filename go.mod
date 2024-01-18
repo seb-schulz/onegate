@@ -8,7 +8,7 @@ require (
 	github.com/go-chi/httplog/v2 v2.0.9
 	github.com/go-chi/httprate v0.8.0
 	github.com/spf13/viper v1.18.2
-	github.com/vektah/gqlparser/v2 v2.5.10
+	github.com/vektah/gqlparser/v2 v2.5.11
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.5.2
 	gorm.io/gorm v1.25.5
