@@ -23,7 +23,8 @@ func runServeCmd(cmd *cobra.Command, args []string) error {
 			Limit: server.RouterLimitConfig{
 				RequestLimit: config.Config.Server.Limit.RequestLimit, WindowLength: config.Config.Server.Limit.WindowLength,
 			},
-			SessionKey: []byte(config.Config.Session.Key),
+			SessionKey:              []byte(config.Config.Session.Key),
+			UserRegistrationEnabled: config.Config.Features.UserRegistration,
 		},
 		HttpPort:  config.Config.Server.HttpPort,
 		ServeType: server.ServeType(config.Config.Server.Kind),

@@ -28,10 +28,11 @@ type (
 	}
 
 	RouterConfig struct {
-		DbDebug    bool
-		Webauthn   webauthn.Config
-		Limit      RouterLimitConfig
-		SessionKey []byte
+		DbDebug                 bool
+		Webauthn                webauthn.Config
+		Limit                   RouterLimitConfig
+		SessionKey              []byte
+		UserRegistrationEnabled bool
 	}
 
 	ServerConfig struct {
@@ -70,9 +71,10 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 		r.Get("/login/{token}", middleware.LoginHandler(db))
 
 		srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
-			DB:       db,
-			WebAuthn: webAuthn,
-			UserMgr:  userMgr,
+			DB:                      db,
+			WebAuthn:                webAuthn,
+			UserMgr:                 userMgr,
+			UserRegistrationEnabled: config.UserRegistrationEnabled,
 		}}))
 
 		r.Handle("/query", userMgr.Handler(csrfMitigationMiddleware(srv)))
