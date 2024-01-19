@@ -66,18 +66,24 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 		r.Use(database.Middleware(db))
 		r.Use(sessionmgr.DefaultMiddleware(config.SessionKey))
 
-		userMgr := sessionmgr.NewStorage[*model.User]("user", model.FirstUser)
+		userMgr := sessionmgr.NewStorage("user", model.FirstUser)
 
 		r.Get("/login/{token}", middleware.LoginHandler(db))
 
-		srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
-			DB:                      db,
-			WebAuthn:                webAuthn,
-			UserMgr:                 userMgr,
-			UserRegistrationEnabled: config.UserRegistrationEnabled,
-		}}))
+		r.Group(func(r chi.Router) {
+			r.Use(userMgr.Handler)
+			r.Use(csrfMitigationMiddleware)
 
-		r.Handle("/query", userMgr.Handler(csrfMitigationMiddleware(srv)))
+			srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
+				DB:                      db,
+				WebAuthn:                webAuthn,
+				UserMgr:                 userMgr,
+				UserRegistrationEnabled: config.UserRegistrationEnabled,
+			}}))
+
+			r.Handle("/query", srv)
+		})
+
 		addGraphQLPlayground(r)
 		r.Handle("/*", ui.Template("index.html.tmpl", func() any {
 			return map[string]any{}
