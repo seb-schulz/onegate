@@ -11,7 +11,7 @@ import (
 	"runtime"
 
 	"github.com/evanw/esbuild/pkg/api"
-	"github.com/seb-schulz/onegate/internal/config"
+	"github.com/seb-schulz/onegate/internal/ui/config"
 )
 
 func fileName() string {
