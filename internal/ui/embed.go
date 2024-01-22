@@ -33,7 +33,7 @@ func PublicFile() http.Handler {
 	return http.FileServer(http.FS(pFS))
 }
 
-func Template(filename string, contextFunc TemplateContextFunc) http.Handler {
+func Template(filename string) http.Handler {
 	tmplFs, err := fs.Sub(UI, "_templates")
 	if err != nil {
 		log.Fatal("failed to get template fs", err)
@@ -45,6 +45,6 @@ func Template(filename string, contextFunc TemplateContextFunc) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.ExecuteTemplate(w, filename, contextFunc())
+		t.ExecuteTemplate(w, filename, fromContext(r.Context()))
 	})
 }

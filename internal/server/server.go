@@ -60,6 +60,7 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 
 	r := chi.NewRouter()
 	r.Use(middleware.ContentSecurityPolicy)
+	r.Use(ui.InitTemplateContext)
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Logger)
 		r.Use(httprate.LimitByRealIP(config.Limit.RequestLimit, config.Limit.WindowLength))
@@ -85,9 +86,7 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 		})
 
 		addGraphQLPlayground(r)
-		r.Handle("/*", ui.Template("index.html.tmpl", func() any {
-			return map[string]any{}
-		}))
+		r.Handle("/*", ui.Template("index.html.tmpl"))
 	})
 
 	r.Group(func(r chi.Router) {
