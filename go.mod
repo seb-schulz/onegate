@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/99designs/gqlgen v0.17.43
-	github.com/evanw/esbuild v0.19.11
+	github.com/evanw/esbuild v0.19.12
 	github.com/go-chi/httplog/v2 v2.0.9
 	github.com/go-chi/httprate v0.8.0
 	github.com/spf13/viper v1.18.2
