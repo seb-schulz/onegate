@@ -33,6 +33,7 @@ type (
 		Limit                   RouterLimitConfig
 		SessionKey              []byte
 		UserRegistrationEnabled bool
+		Login                   middleware.LoginConfig
 	}
 
 	ServerConfig struct {
@@ -67,9 +68,10 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 		r.Use(database.Middleware(db))
 		r.Use(sessionmgr.DefaultMiddleware(config.SessionKey))
 
-		userMgr := sessionmgr.NewStorage("user", model.FirstUser)
+		loginSrv := middleware.NewLoginService(config.Login)
+		r.Get("/login/{token}", loginSrv.Handler)
 
-		r.Get("/login/{token}", middleware.LoginHandler(db))
+		userMgr := sessionmgr.NewStorage("user", model.FirstUser)
 
 		r.Group(func(r chi.Router) {
 			r.Use(userMgr.Handler)
