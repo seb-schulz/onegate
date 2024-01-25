@@ -6,7 +6,7 @@ import { Alert, Container, Nav, Navbar, Row, Spinner, Stack, Toast, ToastContain
 import NavbarLogin from "../components/NavbarLogin";
 import * as graphql from '../__generated__/graphql';
 import { gql } from '../__generated__/gql';
-import { ApolloQueryResult, useQuery } from "@apollo/client";
+import * as urql from 'urql';
 
 const ME_GQL = gql(`
 query me {
@@ -40,19 +40,17 @@ interface FlashMessageType {
 
 export type ContextType = {
     setFlashMessage: (value: FlashMessageType) => void, me?: graphql.User,
-    refetchMe: (variables?: Partial<graphql.Exact<{
-        [key: string]: never;
-    }>> | undefined) => Promise<ApolloQueryResult<graphql.MeQuery>>
+    refetchMe: urql.UseQueryExecute,
 };
 
 export default function Root() {
     const { t } = useTranslation();
     const [flashMessage, setFlashMessage] = useState<FlashMessageType>({ msg: "", type: "danger" });
-    const { loading, data, refetch } = useQuery(ME_GQL);
+    const [{ fetching, data }, refetch] = urql.useQuery({ query: ME_GQL });
 
     const handleError = (e: string) => setFlashMessage({ msg: e, type: "danger" });
 
-    if (loading) return <Spinner animation="border" />;
+    if (fetching) return <Spinner animation="border" />;
 
     return (
         <Stack gap={2}>

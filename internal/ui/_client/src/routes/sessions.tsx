@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useOutletContext } from "react-router-dom";
 import { ContextType } from "./root";
-import { ApolloError, useQuery, useMutation } from "@apollo/client";
+import * as urql from 'urql';
 import { gql } from '../__generated__/gql';
 import * as graphql from '../__generated__/graphql';
 import { Button, ButtonGroup, Col, ListGroup, Row, Spinner, Stack, Table } from "react-bootstrap";
@@ -89,32 +89,28 @@ function Entry({ variant, item, idx, onRemoval }: {
 export default function Sessions() {
     const { t } = useTranslation();
     const { setFlashMessage } = useOutletContext<ContextType>()
-    const { loading, data, refetch } = useQuery(SESSIONS_GQL, {
-        onError: (error) => {
-            setFlashMessage({ msg: (error as ApolloError).message, type: "danger" })
-        }
-    });
-    const [removeSession, { loading: loadingRemoveSession }] = useMutation(REMOVE_SESSION_GQL);
+    const [{ fetching, data, error }, refetch] = urql.useQuery({ query: SESSIONS_GQL });
+    const [{ fetching: fetchingRemoveSession }, removeSession] = urql.useMutation(REMOVE_SESSION_GQL);
 
     const RemoveHandler = (id: string) => (async (e: React.SyntheticEvent) => {
         e.preventDefault();
         e.stopPropagation();
 
         try {
-            const result = await removeSession({
-                variables: {
-                    id: id
-                }
-            })
+            const result = await removeSession({ id: id })
             if (!!result?.data?.removeSession) {
                 refetch();
             }
         } catch (error) {
-            setFlashMessage({ msg: (error as ApolloError).message, type: "danger" });
+            setFlashMessage({ msg: (error as urql.CombinedError).message, type: "danger" });
         }
     });
 
-    if (loading || loadingRemoveSession) return <Spinner animation="border" />;
+    if (error) {
+        setFlashMessage({ msg: error.message, type: "danger" })
+    }
+
+    if (fetching || fetchingRemoveSession) return <Spinner animation="border" />;
 
     const sessionList = data?.sessions!.map((session, idx) => <Entry variant="list" item={session as graphql.Session} idx={idx} key={session!.id} onRemoval={RemoveHandler(session!.id)} />);
 

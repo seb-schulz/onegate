@@ -1,7 +1,7 @@
 import { Button, Navbar, Spinner } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { startAuthentication } from '@simplewebauthn/browser';
-import { ApolloError, useMutation, useQuery } from "@apollo/client";
+import * as urql from 'urql';
 import { gql } from '../__generated__/gql';
 import * as graphql from '../__generated__/graphql';
 
@@ -23,28 +23,23 @@ function NavbarLogin({ me, onError, onSuccess }: {
     onError: (errMsg: string) => void
 }) {
     const { t } = useTranslation();
-    const [beginLogin, { loading: loadingBeginLogin }] = useMutation(BEGIN_LOGIN_QGL);
-    const [validateLogin, { loading: loadingValidateLogin }] = useMutation(VALIDATE_LOGIN_QGL);
+    const [{ fetching: fetchingBeginLogin }, beginLogin] = urql.useMutation(BEGIN_LOGIN_QGL);
+    const [{ fetching: fetchingValidateLogin }, validateLogin] = urql.useMutation(VALIDATE_LOGIN_QGL);
 
-    if (loadingBeginLogin || loadingValidateLogin) return <Spinner animation="border" />;
+    if (fetchingBeginLogin || fetchingValidateLogin) return <Spinner animation="border" />;
 
     const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        const result = await beginLogin();
-        if (!result || !result.data) {
-            onError("cannot request data")
-            return;
-        }
-
         try {
-            const asseResp = await startAuthentication(result.data.beginLogin.publicKey);
+            const result = await beginLogin({});
+            if (!result || !result.data) {
+                onError("cannot request data")
+                return;
+            }
 
-            const verificationResp = await validateLogin({
-                variables: {
-                    body: JSON.stringify(asseResp),
-                },
-            });
+            const asseResp = await startAuthentication(result.data.beginLogin.publicKey);
+            const verificationResp = await validateLogin({ body: JSON.stringify(asseResp) });
 
             if (!verificationResp || !verificationResp.data) {
                 onError("cannot request data")
@@ -55,7 +50,7 @@ function NavbarLogin({ me, onError, onSuccess }: {
                 setTimeout(onSuccess, 0);
             }
         } catch (error) {
-            onError((error as ApolloError).message);
+            onError((error as urql.CombinedError).message);
         }
     };
 

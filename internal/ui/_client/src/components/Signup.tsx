@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Button, Card, Form } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
-import { ApolloError, useMutation } from "@apollo/client";
+import * as urql from 'urql';
 import { startRegistration } from '@simplewebauthn/browser';
 import { gql } from "../__generated__/gql";
 
@@ -25,8 +25,8 @@ function SignupCard({ onUserCreated, onError, onPasskeyAdded }: {
     const { t } = useTranslation();
     const [validated, setValidated] = useState(false);
     const userNameRef = useRef<HTMLInputElement | null>(null);
-    const [createUser, { loading: loadingCreateUser }] = useMutation(CREATE_USER_GQL);
-    const [addCredential, { loading: loadingAddPasskey }] = useMutation(ADD_PASSKEY_QGL);
+    const [{ fetching: loadingCreateUser }, createUser] = urql.useMutation(CREATE_USER_GQL);
+    const [{ fetching: loadingAddPasskey }, addCredential] = urql.useMutation(ADD_PASSKEY_QGL);
 
     if (loadingCreateUser || loadingAddPasskey) return <p>Loading...</p>;
 
@@ -39,30 +39,18 @@ function SignupCard({ onUserCreated, onError, onPasskeyAdded }: {
         if (!userNameRef.current.value) return;
 
         const userName = userNameRef.current.value;
-
-        const result = await createUser({
-            variables: {
-                name: userName,
-            },
-            onError: (error) => {
-                onError((error as ApolloError).message)
-            }
-        });
-
-        if (!result.data || !result.data.createUser) {
-            onError("cannot load data");
-            return;
-        }
-        setTimeout(onUserCreated, 0);
-
         try {
+            const result = await createUser({ name: userName });
+
+            if (!result.data || !result.data.createUser) {
+                onError("cannot load data");
+                return;
+            }
+            setTimeout(onUserCreated, 0);
+
             const attResp = await startRegistration(result.data.createUser.publicKey);
 
-            const addPasskeyData = await addCredential({
-                variables: {
-                    body: JSON.stringify(attResp),
-                },
-            });
+            const addPasskeyData = await addCredential({ body: JSON.stringify(attResp) });
 
             if (!addPasskeyData?.data?.addCredential) {
                 onError("cannot load data");
@@ -70,9 +58,8 @@ function SignupCard({ onUserCreated, onError, onPasskeyAdded }: {
             }
             setTimeout(onPasskeyAdded, 0);
         } catch (error) {
-            onError((error as ApolloError).message);
+            onError((error as urql.CombinedError).message)
         }
-
     };
 
     return (

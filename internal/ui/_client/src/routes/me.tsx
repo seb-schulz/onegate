@@ -4,8 +4,7 @@ import { useOutletContext } from "react-router-dom";
 import { ContextType } from "./root";
 import { useRef } from "react";
 import { gql } from '../__generated__/gql';
-import * as graphql from '../__generated__/graphql';
-import { ApolloError, useMutation } from "@apollo/client";
+import * as urql from 'urql';
 
 const UPDATE_GQL = gql(`
 mutation updateMe($name: String, $displayName: String) {
@@ -20,14 +19,14 @@ export default function Me() {
     const { me, refetchMe, setFlashMessage } = useOutletContext<ContextType>()
     const nameRef = useRef<HTMLInputElement | null>(null)
     const displayNameRef = useRef<HTMLInputElement | null>(null)
-    const [updateMe, { loading }] = useMutation(UPDATE_GQL);
+    const [{ fetching }, updateMe] = urql.useMutation(UPDATE_GQL);
 
 
     if (!me) return (
         <p>Logged out</p>
     )
 
-    if (loading) return <Spinner animation="border" />;
+    if (fetching) return <Spinner animation="border" />;
 
 
     const handleSubmit = async (e: React.SyntheticEvent) => {
@@ -36,14 +35,12 @@ export default function Me() {
 
         try {
             await updateMe({
-                variables: {
-                    name: nameRef.current?.value,
-                    displayName: displayNameRef.current?.value,
-                },
+                name: nameRef.current?.value,
+                displayName: displayNameRef.current?.value,
             });
             await refetchMe();
         } catch (error) {
-            setFlashMessage({ msg: (error as ApolloError).message, type: "danger" });
+            setFlashMessage({ msg: (error as urql.CombinedError).message, type: "danger" });
         }
     };
 

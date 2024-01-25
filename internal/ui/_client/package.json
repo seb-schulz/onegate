@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@apollo/client": "^3.8.7",
     "@simplewebauthn/browser": "^9.0.0",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.1.2",
@@ -19,7 +18,8 @@
     "react-dom": "^18.2.0",
     "react-i18next": "^14.0.0",
     "react-moment": "^1.1.3",
-    "react-router-dom": "^6.21.0"
+    "react-router-dom": "^6.21.0",
+    "urql": "^4.0.6"
   },
   "scripts": {
     "build": "esbuild app.jsx --bundle --outfile=out.js",

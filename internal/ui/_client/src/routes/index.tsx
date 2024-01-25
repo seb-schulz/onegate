@@ -1,10 +1,8 @@
-import { Col, Row, Spinner } from "react-bootstrap";
+import { Col, Row } from "react-bootstrap";
 import SignupCard from "../components/Signup";
 import { useOutletContext } from "react-router-dom";
 import { ContextType } from "./root";
 import { useTranslation } from "react-i18next";
-import { gql } from '../__generated__/gql';
-import { useQuery } from "@apollo/client";
 
 export default function Index() {
     const { t } = useTranslation();

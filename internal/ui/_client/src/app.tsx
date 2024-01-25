@@ -1,7 +1,6 @@
 import * as React from 'react'
 import ReactDOM from 'react-dom/client';
-import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client';
-import { setContext } from '@apollo/client/link/context';
+import { Client, Provider, cacheExchange, fetchExchange } from 'urql';
 
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
@@ -25,18 +24,18 @@ i18n
         fallbackLng: "en",
     });
 
-const client = new ApolloClient({
-    link: setContext((_, { headers }) => {
+
+const client = new Client({
+    url: '/query',
+    exchanges: [cacheExchange, fetchExchange],
+    fetchOptions: () => {
         return {
             headers: {
-                ...headers,
                 'X-Onegate-Csrf-Protection': '1'
-            }
-        }
-    }).concat(createHttpLink({
-        uri: '/query',
-    })),
-    cache: new InMemoryCache(),
+            },
+        };
+    },
+    requestPolicy: 'cache-and-network',
 });
 
 const router = createBrowserRouter([
@@ -59,8 +58,8 @@ const root = ReactDOM.createRoot(
 
 root.render(
     <React.StrictMode>
-        <ApolloProvider client={client}>
+        <Provider value={client}>
             <RouterProvider router={router} />
-        </ApolloProvider>
+        </Provider>
     </React.StrictMode >
 );

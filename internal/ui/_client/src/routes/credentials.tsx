@@ -1,4 +1,4 @@
-import { ApolloError, useMutation, useQuery } from "@apollo/client";
+import * as urql from 'urql';
 import { startRegistration } from "@simplewebauthn/browser";
 import React, { useRef, useState } from "react";
 import { Button, ButtonGroup, Col, Form, InputGroup, ListGroup, Row, Spinner, Stack, Table } from "react-bootstrap";
@@ -94,7 +94,7 @@ function CredentialEntry({ modus, credential, idx, onRemoval }: {
     onRemoval: (e: React.SyntheticEvent) => Promise<void>
 }) {
     const { t } = useTranslation();
-    const [updateCredential, { loading }] = useMutation(UPDATE_GQL);
+    const [{ fetching }, updateCredential] = urql.useMutation(UPDATE_GQL);
     const { setFlashMessage } = useOutletContext<ContextType>()
 
     const actions = <ButtonGroup size="sm">
@@ -104,19 +104,20 @@ function CredentialEntry({ modus, credential, idx, onRemoval }: {
     const handleSubmit = async (value?: string) => {
         if (!value) return;
 
-        const resp = await updateCredential({
-            variables: {
+        try {
+            const resp = await updateCredential({
+
                 id: credential.id,
                 description: value,
-            },
-            onError: (error) => {
-                setFlashMessage({ msg: (error as ApolloError).message, type: "danger" })
-            }
-        });
+            });
 
-        if (!!resp.data?.updateCredential?.id) {
-            setFlashMessage({ msg: "Description saved", type: "success" })
+            if (!!resp.data?.updateCredential?.id) {
+                setFlashMessage({ msg: "Description saved", type: "success" })
+            }
+        } catch (error) {
+            setFlashMessage({ msg: (error as urql.CombinedError).message, type: "danger" })
         }
+
     }
 
     const description = !!credential.description ? credential.description : "Credential " + (idx + 1)
@@ -126,7 +127,7 @@ function CredentialEntry({ modus, credential, idx, onRemoval }: {
     if (modus === "list") {
         return (
             <ListGroup.Item>
-                <Row className="mb-2"><InlineEditingText value={description} onSubmit={handleSubmit} loading={loading} size="lg" /></Row>
+                <Row className="mb-2"><InlineEditingText value={description} onSubmit={handleSubmit} loading={fetching} size="lg" /></Row>
                 <Row>
                     <Col sm={true}>
                         <Stack direction="horizontal" gap={1}>
@@ -158,7 +159,7 @@ function CredentialEntry({ modus, credential, idx, onRemoval }: {
         return (
             <tr>
                 <td>
-                    <InlineEditingText value={description} onSubmit={handleSubmit} loading={loading} />
+                    <InlineEditingText value={description} onSubmit={handleSubmit} loading={fetching} />
                 </td>
                 <td>{lastLogin}</td>
                 <td><Moment fromNow withTitle>{credential!.createdAt}</Moment></td>
@@ -174,17 +175,15 @@ function CredentialEntry({ modus, credential, idx, onRemoval }: {
 export default function Credentials() {
     const { t } = useTranslation();
     const { setFlashMessage } = useOutletContext<ContextType>()
-    const { loading, data, refetch } = useQuery(CREDENTIALS_GQL, {
-        onError: (error) => {
-            setFlashMessage({ msg: (error as ApolloError).message, type: "danger" })
-        }
-    });
-    const [initCredential, { loading: loadingInitPasskey }] = useMutation(INIT_CREDENTIAL_QGL);
-    const [addCredential, { loading: loadingAddPasskey }] = useMutation(ADD_CREDENTIAL_QGL);
-    const [removeCredential, { loading: loadingRemoveCredential }] = useMutation(REMOVE_CREDENTIAL_QGL);
+    const [{ fetching, data, error }, refetch] = urql.useQuery({ query: CREDENTIALS_GQL });
+    const [{ fetching: fetchingInitPasskey }, initCredential] = urql.useMutation(INIT_CREDENTIAL_QGL);
+    const [{ fetching: fetchingAddPasskey }, addCredential] = urql.useMutation(ADD_CREDENTIAL_QGL);
+    const [{ fetching: fetchingRemoveCredential }, removeCredential] = urql.useMutation(REMOVE_CREDENTIAL_QGL);
 
 
-    if (loading || loadingRemoveCredential) return <Spinner animation="border" />;
+    if (fetching || fetchingRemoveCredential) return <Spinner animation="border" />;
+    if (error) setFlashMessage({ msg: (error as urql.CombinedError).message, type: "danger" })
+
     if (!data?.credentials) return t("You are logged-out!");
 
     const RemoveCredentialHandler = (id: string) => (async (e: React.SyntheticEvent) => {
@@ -192,16 +191,12 @@ export default function Credentials() {
         e.stopPropagation();
 
         try {
-            const result = await removeCredential({
-                variables: {
-                    id: id
-                }
-            })
+            const result = await removeCredential({ id: id })
             if (!!result?.data?.removeCredential) {
                 refetch();
             }
         } catch (error) {
-            setFlashMessage({ msg: (error as ApolloError).message, type: "danger" });
+            setFlashMessage({ msg: (error as urql.CombinedError).message, type: "danger" });
         }
     })
 
@@ -216,25 +211,16 @@ export default function Credentials() {
         e.preventDefault();
         e.stopPropagation();
 
-        const result = await initCredential({
-            onError: (error) => {
-                setFlashMessage({ msg: (error as ApolloError).message, type: "danger" });
-            }
-        });
-
-        if (!result.data || !result.data.initCredential) {
-            setFlashMessage({ msg: t("cannot load data"), type: "danger" });
-            return;
-        }
-
         try {
-            const attResp = await startRegistration(result.data.initCredential.publicKey);
+            const result = await initCredential({});
 
-            const addedData = await addCredential({
-                variables: {
-                    body: JSON.stringify(attResp),
-                },
-            });
+            if (!result.data || !result.data.initCredential) {
+                setFlashMessage({ msg: t("cannot load data"), type: "danger" });
+                return;
+            }
+
+            const attResp = await startRegistration(result.data.initCredential.publicKey);
+            const addedData = await addCredential({ body: JSON.stringify(attResp) });
 
             if (!addedData?.data?.addCredential) {
                 setFlashMessage({ msg: t("cannot load data"), type: "danger" });
@@ -242,7 +228,7 @@ export default function Credentials() {
             }
             refetch()
         } catch (error) {
-            setFlashMessage({ msg: (error as ApolloError).message, type: "danger" });
+            setFlashMessage({ msg: (error as urql.CombinedError).message, type: "danger" });
         }
 
     }
@@ -265,7 +251,7 @@ export default function Credentials() {
                 </Table>
             </Col></Row>
             <Row><Col>
-                {loadingInitPasskey || loadingAddPasskey
+                {fetchingInitPasskey || fetchingAddPasskey
                     ? <Spinner animation="border" />
                     : <Button onClick={handleAddCredential}>Add</Button>}
             </Col></Row>
