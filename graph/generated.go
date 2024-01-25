@@ -123,8 +123,6 @@ type QueryResolver interface {
 }
 type SessionResolver interface {
 	ID(ctx context.Context, obj *model.Session) (string, error)
-
-	IsCurrent(ctx context.Context, obj *model.Session) (bool, error)
 }
 
 type executableSchema struct {
@@ -2032,7 +2030,7 @@ func (ec *executionContext) _Session_isCurrent(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Session().IsCurrent(rctx, obj)
+		return obj.IsCurrent(ctx), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2054,7 +2052,7 @@ func (ec *executionContext) fieldContext_Session_isCurrent(ctx context.Context, 
 		Object:     "Session",
 		Field:      field,
 		IsMethod:   true,
-		IsResolver: true,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
 		},
