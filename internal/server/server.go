@@ -68,13 +68,13 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 		r.Use(database.Middleware(db))
 		r.Use(sessionmgr.DefaultMiddleware(config.SessionKey))
 
-		r.Mount("/login", middleware.NewLoginRoute(config.Login))
-
 		userMgr := sessionmgr.NewStorage("user", model.FirstUser)
 
 		r.Group(func(r chi.Router) {
 			r.Use(userMgr.Handler)
 			r.Use(csrfMitigationMiddleware)
+
+			r.Mount("/login", middleware.NewLoginRoute(config.Login))
 
 			srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
 				DB:                      db,

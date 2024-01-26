@@ -27,14 +27,15 @@ func TestCsrfMitigationMiddleware(t *testing.T) {
 		expect int
 		req    *http.Request
 	}{
-		{http.StatusUnauthorized, newRequestWithHeader("GET", nil)},
+		{http.StatusOK, newRequestWithHeader("GET", nil)},
 		{http.StatusUnauthorized, newRequestWithHeader("POST", nil)},
-		{http.StatusUnauthorized, newRequestWithHeader("GET", &http.Header{"X-Random-Header": []string{"foobar"}})},
+		{http.StatusOK, newRequestWithHeader("GET", &http.Header{"X-Random-Header": []string{"foobar"}})},
 		{http.StatusUnauthorized, newRequestWithHeader("POST", &http.Header{"X-Random-Header": []string{"foobar"}})},
 		{http.StatusUnauthorized, newRequestWithHeader("GET", &http.Header{"X-Onegate-Csrf-Protection": []string{"abc", "0"}})},
 		{http.StatusUnauthorized, newRequestWithHeader("POST", &http.Header{"X-Onegate-Csrf-Protection": []string{"abc", "0"}})},
 		{http.StatusUnauthorized, newRequestWithHeader("GET", &http.Header{"X-Onegate-Csrf-Protection": []string{"abc"}})},
 		{http.StatusUnauthorized, newRequestWithHeader("GET", &http.Header{"X-Onegate-Csrf-Protection": []string{"0"}})},
+		{http.StatusOK, newRequestWithHeader("GET", &http.Header{"X-Onegate-Csrf-Protection": []string{"1"}})},
 		{http.StatusOK, newRequestWithHeader("POST", &http.Header{"X-Onegate-Csrf-Protection": []string{"1"}})},
 	} {
 		w := httptest.NewRecorder()
