@@ -15,11 +15,30 @@ import (
 	"github.com/seb-schulz/onegate/internal/model"
 )
 
-type loginClaims struct {
-	jwt.RegisteredClaims
-}
+type (
+	loginClaims struct {
+		jwt.RegisteredClaims
+	}
 
-var errJwtInvalidSubject = errors.New("must be an int greater than zero")
+	tokenBasedLoginService struct {
+		key          []byte
+		validMethods []string
+		baseUrl      url.URL
+		loginUser    func(context.Context, model.LoginOpt) error
+		targetUrl    url.URL
+	}
+
+	LoginConfig struct {
+		Key          []byte
+		ValidMethods []string
+		BaseUrl      url.URL
+	}
+)
+
+var (
+	errJwtInvalidSubject = errors.New("must be an int greater than zero")
+	defaultTargetUrl     = url.URL{Path: "/"}
+)
 
 func (m loginClaims) Validate() error {
 	uID, err := m.UserID()
@@ -47,30 +66,27 @@ func (m loginClaims) UserID() (uint, error) {
 	return uID, nil
 }
 
-type loginService struct {
-	key          []byte
-	validMethods []string
-	baseUrl      url.URL
-	loginUser    func(context.Context, model.LoginOpt) error
+func NewLoginRoute(lc LoginConfig) http.Handler {
+	route := chi.NewRouter()
+
+	tokenSrv := &tokenBasedLoginService{lc.Key, lc.ValidMethods, lc.BaseUrl, model.LoginUser, defaultTargetUrl}
+	route.Get("/{token}", tokenSrv.Handler)
+
+	return route
 }
 
-type LoginConfig struct {
-	Key          []byte
-	ValidMethods []string
-	BaseUrl      url.URL
+func TokenBasedLoginUrl(lc LoginConfig, userID uint, expiresIn time.Duration) (*url.URL, error) {
+	tokenSrv := &tokenBasedLoginService{lc.Key, lc.ValidMethods, lc.BaseUrl, model.LoginUser, defaultTargetUrl}
+	return tokenSrv.getLoginUrl(userID, expiresIn)
 }
 
-func NewLoginService(lc LoginConfig) *loginService {
-	return &loginService{lc.Key, lc.ValidMethods, lc.BaseUrl, model.LoginUser}
-}
-
-func (ls *loginService) parseToken(signedToken string) (*jwt.Token, error) {
+func (ls *tokenBasedLoginService) parseToken(signedToken string) (*jwt.Token, error) {
 	return jwt.ParseWithClaims(signedToken, &loginClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return ls.key, nil
 	}, jwt.WithValidMethods(ls.validMethods), jwt.WithExpirationRequired(), jwt.WithLeeway(30*time.Second))
 }
 
-func (ls *loginService) GetLoginUrl(userID uint, expiresIn time.Duration) (*url.URL, error) {
+func (ls *tokenBasedLoginService) getLoginUrl(userID uint, expiresIn time.Duration) (*url.URL, error) {
 	characters := "ABCDEFGHIJKLMOPQRSTUVWXYZabcdefghijklmopqrstuvwxyz0123456789"
 	id_runes := make([]byte, 4)
 	for i := range id_runes {
@@ -92,8 +108,8 @@ func (ls *loginService) GetLoginUrl(userID uint, expiresIn time.Duration) (*url.
 	return ls.baseUrl.JoinPath(sigendToken), nil
 }
 
-func (ls *loginService) Handler(w http.ResponseWriter, r *http.Request) {
-	defer http.Redirect(w, r, fmt.Sprint(ls.baseUrl), http.StatusSeeOther)
+func (ls *tokenBasedLoginService) Handler(w http.ResponseWriter, r *http.Request) {
+	defer http.Redirect(w, r, fmt.Sprint(ls.targetUrl), http.StatusSeeOther)
 
 	logger := httplog.LogEntry(r.Context())
 	signedToken := chi.URLParam(r, "token")

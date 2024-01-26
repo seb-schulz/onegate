@@ -68,8 +68,7 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 		r.Use(database.Middleware(db))
 		r.Use(sessionmgr.DefaultMiddleware(config.SessionKey))
 
-		loginSrv := middleware.NewLoginService(config.Login)
-		r.Get("/login/{token}", loginSrv.Handler)
+		r.Mount("/login", middleware.NewLoginRoute(config.Login))
 
 		userMgr := sessionmgr.NewStorage("user", model.FirstUser)
 

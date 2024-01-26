@@ -29,7 +29,7 @@ func runServeCmd(cmd *cobra.Command, args []string) error {
 			Login: middleware.LoginConfig{
 				Key:          config.Config.UrlLogin.Key,
 				ValidMethods: config.Config.UrlLogin.ValidMethods,
-				BaseUrl:      config.Config.BaseUrl,
+				BaseUrl:      *config.Config.BaseUrl.JoinPath("login"),
 			},
 		},
 		HttpPort:  config.Config.Server.HttpPort,

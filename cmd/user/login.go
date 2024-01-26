@@ -39,11 +39,11 @@ var loginCmd = &cobra.Command{
 			return fmt.Errorf(errRetrieveUserFormat, r.Error)
 		}
 
-		url, err := middleware.NewLoginService(middleware.LoginConfig{
+		url, err := middleware.TokenBasedLoginUrl(middleware.LoginConfig{
 			Key:          config.Config.UrlLogin.Key,
 			ValidMethods: config.Config.UrlLogin.ValidMethods,
-			BaseUrl:      config.Config.BaseUrl,
-		}).GetLoginUrl(user.ID, expiresIn)
+			BaseUrl:      *config.Config.BaseUrl.JoinPath("login"),
+		}, user.ID, expiresIn)
 		if err != nil {
 			return fmt.Errorf("cannot generate URL: %v", err)
 		}

@@ -17,9 +17,9 @@ import (
 	"github.com/seb-schulz/onegate/internal/model"
 )
 
-func TestParseToken(t *testing.T) {
+func TestTokenBasedLoginServiceParseToken(t *testing.T) {
 	key := []byte(".test.")
-	ls := loginService{
+	ls := tokenBasedLoginService{
 		key:          key,
 		validMethods: []string{"HS256"},
 	}
@@ -57,10 +57,10 @@ func TestParseToken(t *testing.T) {
 	}
 }
 
-func FuzzGetLoginUrl2(f *testing.F) {
+func FuzzTokenBasedLoginServiceGetLoginUrl(f *testing.F) {
 	u, _ := url.Parse("https://example.com/login")
 
-	ls := loginService{
+	ls := tokenBasedLoginService{
 		key:          []byte("abcd"),
 		validMethods: []string{"HS256"},
 		baseUrl:      *u,
@@ -79,7 +79,7 @@ func FuzzGetLoginUrl2(f *testing.F) {
 		f.Add(uint(rand.Int()))
 	}
 	f.Fuzz(func(t *testing.T, id uint) {
-		out, err := ls.GetLoginUrl(id, time.Second)
+		out, err := ls.getLoginUrl(id, time.Second)
 		if err != nil {
 			t.Fatalf("URL for %v: failed: %v", id, err)
 		}
@@ -90,20 +90,18 @@ func FuzzGetLoginUrl2(f *testing.F) {
 	})
 }
 
-func TestLoginServiceHandler(t *testing.T) {
-	newUrl := func(ls *loginService, userID uint, expiresIn time.Duration) string {
-		url, _ := ls.GetLoginUrl(userID, expiresIn)
+func TestTokenBasedLoginServiceHandler(t *testing.T) {
+	newUrl := func(ls *tokenBasedLoginService, userID uint, expiresIn time.Duration) string {
+		url, _ := ls.getLoginUrl(userID, expiresIn)
 		return fmt.Sprint(url)
 	}
 	newRequest := func(url string) *http.Request {
 		return httptest.NewRequest("GET", url, nil)
 	}
-	u, _ := url.Parse("https://example.com/login")
-
-	ls := loginService{
+	ls := tokenBasedLoginService{
 		key:          []byte("abcd"),
 		validMethods: []string{"HS256"},
-		baseUrl:      *u,
+		baseUrl:      url.URL{Scheme: "https", Host: "example.com", Path: "/login"},
 	}
 
 	handler := chi.NewRouter()
