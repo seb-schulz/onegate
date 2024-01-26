@@ -10,6 +10,7 @@
     "@types/jest": "^29.5.8",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
+    "@urql/exchange-retry": "^1.2.1",
     "bootstrap": "^5.3.2",
     "bootstrap-icons": "^1.11.2",
     "graphql": "^16.8.1",

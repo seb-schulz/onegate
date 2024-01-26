@@ -1,7 +1,7 @@
 import * as React from 'react'
 import ReactDOM from 'react-dom/client';
 import { Client, Provider, cacheExchange, fetchExchange } from 'urql';
-
+import { retryExchange } from '@urql/exchange-retry';
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -27,7 +27,13 @@ i18n
 
 const client = new Client({
     url: '/query',
-    exchanges: [cacheExchange, fetchExchange],
+    exchanges: [cacheExchange, retryExchange({
+        initialDelayMs: 1000,
+        maxDelayMs: 15000,
+        randomDelay: true,
+        maxNumberAttempts: 2,
+        retryIf: err => !!(err && err.networkError),
+    }), fetchExchange],
     fetchOptions: () => {
         return {
             headers: {
