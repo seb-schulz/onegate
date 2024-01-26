@@ -6,7 +6,7 @@ import (
 
 func DefaultBuildOptions(absWorkingDir, outdir string, prod bool) api.BuildOptions {
 	opts := api.BuildOptions{
-		EntryPoints:       []string{"src/app.tsx"},
+		EntryPoints:       []string{"src/app.tsx", "src/login.tsx"},
 		Bundle:            true,
 		AbsWorkingDir:     absWorkingDir,
 		Outdir:            outdir,

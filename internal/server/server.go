@@ -87,7 +87,7 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 		})
 
 		addGraphQLPlayground(r)
-		r.Handle("/*", ui.Template("index.html.tmpl"))
+		r.Get("/*", ui.Template("index.html.tmpl"))
 	})
 
 	r.Group(func(r chi.Router) {

@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/httplog/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/seb-schulz/onegate/internal/model"
+	"github.com/seb-schulz/onegate/internal/ui"
 )
 
 type (
@@ -71,6 +72,7 @@ func NewLoginRoute(lc LoginConfig) http.Handler {
 
 	tokenSrv := &tokenBasedLoginService{lc.Key, lc.ValidMethods, lc.BaseUrl, model.LoginUser, defaultTargetUrl}
 	route.Get("/{token}", tokenSrv.Handler)
+	route.Get("/", ui.Template("login.html.tmpl"))
 
 	return route
 }
