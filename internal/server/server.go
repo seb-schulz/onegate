@@ -14,9 +14,9 @@ import (
 	"github.com/seb-schulz/onegate/graph"
 	"github.com/seb-schulz/onegate/internal/database"
 	"github.com/seb-schulz/onegate/internal/middleware"
-	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"github.com/seb-schulz/onegate/internal/ui"
+	"github.com/seb-schulz/onegate/internal/usermgr"
 )
 
 type (
@@ -68,10 +68,8 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 		r.Use(database.Middleware(db))
 		r.Use(sessionmgr.DefaultMiddleware(config.SessionKey))
 
-		userMgr := sessionmgr.NewStorage("user", model.FirstUser)
-
 		r.Group(func(r chi.Router) {
-			r.Use(userMgr.Handler)
+			r.Use(usermgr.Middleware)
 			r.Use(csrfMitigationMiddleware)
 
 			r.Mount("/login", middleware.NewLoginRoute(config.Login))
@@ -79,7 +77,6 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 			srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
 				DB:                      db,
 				WebAuthn:                webAuthn,
-				UserMgr:                 userMgr,
 				UserRegistrationEnabled: config.UserRegistrationEnabled,
 			}}))
 

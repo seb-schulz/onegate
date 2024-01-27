@@ -15,6 +15,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	dbmodel "github.com/seb-schulz/onegate/internal/model"
+	"github.com/seb-schulz/onegate/internal/usermgr"
 	"gorm.io/gorm"
 )
 
@@ -31,7 +32,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protoc
 		return nil, fmt.Errorf("feature disabled")
 	}
 
-	if user := r.UserMgr.FromContext(ctx); user != nil {
+	if user := usermgr.FromContext(ctx); user != nil {
 		return nil, fmt.Errorf("currently logged in with an user")
 	}
 
@@ -44,7 +45,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, name string) (*protoc
 
 // UpdateMe is the resolver for the updateMe field.
 func (r *mutationResolver) UpdateMe(ctx context.Context, name *string, displayName *string) (*dbmodel.User, error) {
-	user := r.UserMgr.FromContext(ctx)
+	user := usermgr.FromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("user not logged in")
 	}
@@ -79,7 +80,7 @@ func (r *mutationResolver) UpdateMe(ctx context.Context, name *string, displayNa
 func (r *mutationResolver) InitCredential(ctx context.Context) (*protocol.CredentialCreation, error) {
 	defer time.Sleep(2 * time.Second)
 
-	user := r.UserMgr.FromContext(ctx)
+	user := usermgr.FromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("user not logged in")
 	}
@@ -89,7 +90,7 @@ func (r *mutationResolver) InitCredential(ctx context.Context) (*protocol.Creden
 
 // AddPasskey is the resolver for the addPasskey field.
 func (r *mutationResolver) AddCredential(ctx context.Context, body string) (bool, error) {
-	user := r.UserMgr.FromContext(ctx)
+	user := usermgr.FromContext(ctx)
 	if user == nil {
 		return false, fmt.Errorf("user not logged in")
 	}
@@ -128,7 +129,7 @@ func (r *mutationResolver) UpdateCredential(ctx context.Context, id string, desc
 	if len(*description) > 255 {
 		return nil, fmt.Errorf("length of description must be less or equal 255 characters")
 	}
-	user := r.UserMgr.FromContext(ctx)
+	user := usermgr.FromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("user not logged in")
 	}
@@ -145,7 +146,7 @@ func (r *mutationResolver) UpdateCredential(ctx context.Context, id string, desc
 
 // RemoveCredential is the resolver for the removeCredential field.
 func (r *mutationResolver) RemoveCredential(ctx context.Context, id string) (bool, error) {
-	user := r.UserMgr.FromContext(ctx)
+	user := usermgr.FromContext(ctx)
 	if user == nil {
 		return false, fmt.Errorf("user not logged in")
 	}
@@ -166,7 +167,7 @@ func (r *mutationResolver) RemoveCredential(ctx context.Context, id string) (boo
 // BeginLogin is the resolver for the beginLogin field.
 func (r *mutationResolver) BeginLogin(ctx context.Context) (*protocol.CredentialAssertion, error) {
 	defer time.Sleep(2 * time.Second)
-	user := r.UserMgr.FromContext(ctx)
+	user := usermgr.FromContext(ctx)
 	if user != nil {
 		return nil, fmt.Errorf("user is logged-in")
 	}
@@ -187,7 +188,7 @@ func (r *mutationResolver) BeginLogin(ctx context.Context) (*protocol.Credential
 func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool, error) {
 	defer time.Sleep(2 * time.Second)
 
-	if user := r.UserMgr.FromContext(ctx); user != nil {
+	if user := usermgr.FromContext(ctx); user != nil {
 		return false, fmt.Errorf("user is logged-in")
 	}
 
@@ -243,7 +244,7 @@ func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (bool
 
 // RemoveSession is the resolver for the removeSession field.
 func (r *mutationResolver) RemoveSession(ctx context.Context, id string) (bool, error) {
-	user := r.UserMgr.FromContext(ctx)
+	user := usermgr.FromContext(ctx)
 	if user == nil {
 		return false, fmt.Errorf("user not logged in")
 	}
@@ -262,13 +263,13 @@ func (r *mutationResolver) RemoveSession(ctx context.Context, id string) (bool, 
 
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*dbmodel.User, error) {
-	user := r.UserMgr.FromContext(ctx)
+	user := usermgr.FromContext(ctx)
 	return user, nil // ignore error to dedect logged-out scenario
 }
 
 // Credentials is the resolver for the credentials field.
 func (r *queryResolver) Credentials(ctx context.Context) ([]*dbmodel.Credential, error) {
-	user := r.UserMgr.FromContext(ctx)
+	user := usermgr.FromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("user not logged in")
 	}
@@ -283,7 +284,7 @@ func (r *queryResolver) Credentials(ctx context.Context) ([]*dbmodel.Credential,
 
 // Sessions is the resolver for the sessions field.
 func (r *queryResolver) Sessions(ctx context.Context) ([]*dbmodel.Session, error) {
-	user := r.UserMgr.FromContext(ctx)
+	user := usermgr.FromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("user not logged in")
 	}
