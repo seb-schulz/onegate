@@ -2,6 +2,7 @@ import { Button, Spinner } from 'react-bootstrap';
 import * as urql from 'urql';
 import { gql } from '../__generated__/gql';
 import { startAuthentication } from '@simplewebauthn/browser';
+import { useState } from 'react';
 
 const BEGIN_LOGIN_QGL = gql(`
 mutation beginLogin {
@@ -16,15 +17,27 @@ mutation validateLogin($body: CredentialRequestResponse!) {
 `);
 
 export default function LoginButton({ onError, onSuccess, children }: {
-    onSuccess: () => void
-    onError: (errMsg: string) => void
+    onSuccess?: () => void
+    onError?: (errMsg: string) => void
     children: string | JSX.Element | JSX.Element[]
 }) {
     const [{ fetching: fetchingBeginLogin }, beginLogin] = urql.useMutation(BEGIN_LOGIN_QGL);
     const [{ fetching: fetchingValidateLogin }, validateLogin] = urql.useMutation(VALIDATE_LOGIN_QGL);
+    const [spinner, setSpinner] = useState(false);
 
-    if (fetchingBeginLogin || fetchingValidateLogin) return (<Spinner animation="border" />);
+    const onHookedSuccess = () => {
+        if (!!onSuccess) onSuccess();
+        setSpinner(false)
+    }
 
+    const onHookedError = (errMsg: string) => {
+        if (!!onError) onError(errMsg);
+        setSpinner(false)
+    }
+
+    if (!spinner && (fetchingBeginLogin || fetchingValidateLogin)) setSpinner(true);
+
+    if (spinner) return (<Spinner animation="border" />);
 
     const handleSubmit = async (e: React.SyntheticEvent) => {
         e.preventDefault();
@@ -32,7 +45,7 @@ export default function LoginButton({ onError, onSuccess, children }: {
         try {
             const result = await beginLogin({});
             if (!result || !result.data) {
-                onError("cannot request data")
+                onHookedError("cannot request data")
                 return;
             }
 
@@ -40,15 +53,15 @@ export default function LoginButton({ onError, onSuccess, children }: {
             const verificationResp = await validateLogin({ body: JSON.stringify(asseResp) });
 
             if (!verificationResp || !verificationResp.data) {
-                onError("cannot request data")
+                onHookedError("cannot request data")
                 return;
             }
 
             if (verificationResp.data.validateLogin) {
-                onSuccess();
+                onHookedSuccess();
             }
         } catch (error) {
-            onError((error as urql.CombinedError).message);
+            onHookedError((error as urql.CombinedError).message);
         }
     };
 
