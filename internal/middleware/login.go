@@ -14,6 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/ui"
+	"github.com/seb-schulz/onegate/internal/usermgr"
 )
 
 type (
@@ -70,6 +71,18 @@ func (m loginClaims) UserID() (uint, error) {
 func NewLoginRoute(lc LoginConfig) http.Handler {
 	route := chi.NewRouter()
 
+	route.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user := usermgr.FromContext(r.Context())
+			if user != nil {
+				http.Redirect(w, r, fmt.Sprint(&defaultTargetUrl), http.StatusSeeOther)
+				return
+			}
+			next.ServeHTTP(w, r)
+
+		})
+	})
+
 	tokenSrv := &tokenBasedLoginService{lc.Key, lc.ValidMethods, lc.BaseUrl, model.LoginUser, defaultTargetUrl}
 	route.Get("/{token}", tokenSrv.Handler)
 	route.Get("/", ui.Template("login.html.tmpl"))
@@ -111,7 +124,7 @@ func (ls *tokenBasedLoginService) getLoginUrl(userID uint, expiresIn time.Durati
 }
 
 func (ls *tokenBasedLoginService) Handler(w http.ResponseWriter, r *http.Request) {
-	defer http.Redirect(w, r, fmt.Sprint(ls.targetUrl), http.StatusSeeOther)
+	defer http.Redirect(w, r, fmt.Sprint(&ls.targetUrl), http.StatusSeeOther)
 
 	logger := httplog.LogEntry(r.Context())
 	signedToken := chi.URLParam(r, "token")

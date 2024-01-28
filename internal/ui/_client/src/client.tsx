@@ -22,11 +22,10 @@ const client = new urql.Client({
     requestPolicy: 'cache-and-network',
 });
 
-type ProviderProps = {
-    children: string | JSX.Element | JSX.Element[]
-}
 
-export default function Provider({ children }: ProviderProps) {
+export default function Provider({ children }: {
+    children: string | JSX.Element | JSX.Element[]
+}) {
     return (
         <urql.Provider value={client}>{children}</urql.Provider>
     );
