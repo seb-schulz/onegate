@@ -60,10 +60,10 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 	}
 
 	r := chi.NewRouter()
-	r.Use(middleware.ContentSecurityPolicy)
+	r.Use(contentSecurityPolicyMiddleware)
 	r.Use(ui.InitTemplateContext)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.Logger)
+		r.Use(loggerMiddleware)
 		r.Use(httprate.LimitByRealIP(config.Limit.RequestLimit, config.Limit.WindowLength))
 		r.Use(database.Middleware(db))
 		r.Use(sessionmgr.DefaultMiddleware(config.SessionKey))

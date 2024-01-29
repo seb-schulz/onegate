@@ -1,4 +1,4 @@
-package middleware
+package server
 
 import (
 	"log/slog"
@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	DefaultLogger func(next http.Handler) http.Handler
+	defaultLoggerMiddleware func(next http.Handler) http.Handler
 )
 
 func init() {
@@ -36,9 +36,9 @@ func init() {
 		}
 		opt.Writer = f
 	}
-	DefaultLogger = httplog.RequestLogger(httplog.NewLogger("onegate", opt))
+	defaultLoggerMiddleware = httplog.RequestLogger(httplog.NewLogger("onegate", opt))
 }
 
-func Logger(next http.Handler) http.Handler {
-	return DefaultLogger(next)
+func loggerMiddleware(next http.Handler) http.Handler {
+	return defaultLoggerMiddleware(next)
 }
