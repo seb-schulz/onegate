@@ -78,6 +78,7 @@ func NewLoginRoute(lc LoginConfig) http.Handler {
 				http.Redirect(w, r, fmt.Sprint(&defaultTargetUrl), http.StatusSeeOther)
 				return
 			}
+			ui.AddTemplateValue(r.Context(), "startLogin", false)
 			next.ServeHTTP(w, r)
 
 		})

@@ -1,7 +1,7 @@
 import { Navbar } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import * as graphql from '../__generated__/graphql';
-import LoginButton from "./LoginButton";
+import { LoginButton } from "./login";
 
 
 function NavbarLogin({ me, onError, onSuccess }: {

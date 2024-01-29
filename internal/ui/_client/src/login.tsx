@@ -2,25 +2,37 @@ import * as React from 'react'
 import ReactDOM from 'react-dom/client';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './login.css'
-import { Card } from 'react-bootstrap';
+import { Alert, Card, Spinner } from 'react-bootstrap';
 import Provider from './client';
 import { useTranslation } from 'react-i18next';
-import LoginButton from './components/LoginButton';
+import { LoginButton, LoginSpinner } from './components/login';
 
-const root = ReactDOM.createRoot(
-    document.getElementById('root') as HTMLElement
-);
+const rootDom = document.getElementById('root') as HTMLElement;
+const root = ReactDOM.createRoot(rootDom);
+const startLogin = rootDom.dataset['startLogin'] == "1"
 
 function CentralCard() {
     const { t } = useTranslation();
+    const [error, setError] = React.useState("")
+
+    const onSuccess = () => {
+        window.location.href = "/";
+    }
+
+    const login = (
+        <LoginButton onError={setError} onSuccess={onSuccess}>{t('Login with passkey')}</LoginButton>
+    )
+
+    const spinner = (
+        <LoginSpinner onError={setError} onSuccess={onSuccess} />
+    );
 
     return (
         <Card className="shadow text-center mt-5 login-card m-auto">
             <Card.Body>
                 <Card.Title>{t('One Gate')}</Card.Title>
-                <LoginButton onError={console.error} onSuccess={() => {
-                    window.location.href = "/";
-                }}>{t('Login with passkey')}</LoginButton>
+                {error ? <Alert variant="danger">{error}</Alert> : ""}
+                {startLogin && !error ? spinner : login}
             </Card.Body>
         </Card>
     );
