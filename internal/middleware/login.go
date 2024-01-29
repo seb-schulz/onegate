@@ -38,8 +38,9 @@ type (
 )
 
 var (
-	errJwtInvalidSubject = errors.New("must be an int greater than zero")
-	defaultTargetUrl     = url.URL{Path: "/"}
+	errJwtInvalidSubject   = errors.New("must be an int greater than zero")
+	defaultTargetUrl       = url.URL{Path: "/"}
+	defaultUserFromContext = usermgr.FromContext
 )
 
 func (m loginClaims) Validate() error {
@@ -68,16 +69,24 @@ func (m loginClaims) UserID() (uint, error) {
 	return uID, nil
 }
 
+func redirectWhenLoggedOut(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := defaultUserFromContext(r.Context())
+		if user != nil {
+			http.Redirect(w, r, fmt.Sprint(&defaultTargetUrl), http.StatusSeeOther)
+			return
+		}
+		next.ServeHTTP(w, r)
+
+	})
+}
+
 func NewLoginRoute(lc LoginConfig) http.Handler {
 	route := chi.NewRouter()
 
+	route.Use(redirectWhenLoggedOut)
 	route.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			user := usermgr.FromContext(r.Context())
-			if user != nil {
-				http.Redirect(w, r, fmt.Sprint(&defaultTargetUrl), http.StatusSeeOther)
-				return
-			}
 			ui.AddTemplateValue(r.Context(), "startLogin", false)
 			next.ServeHTTP(w, r)
 

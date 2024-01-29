@@ -15,7 +15,43 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/seb-schulz/onegate/internal/model"
+	"gorm.io/gorm"
 )
+
+func TestRedirectWhenLoggedOut(t *testing.T) {
+	type testCase struct {
+		expectedStatus int
+		fromCtx        func(context.Context) *model.User
+	}
+
+	_orig := defaultUserFromContext
+	defer func() {
+		defaultUserFromContext = _orig
+	}()
+
+	for _, tc := range []testCase{
+		{http.StatusOK, func(context.Context) *model.User {
+			return nil
+		}},
+		{http.StatusSeeOther, func(context.Context) *model.User {
+			return &model.User{Model: gorm.Model{ID: 1}}
+		}},
+	} {
+		defaultUserFromContext = tc.fromCtx
+		handler := redirectWhenLoggedOut(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, "Ok")
+		}))
+
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, httptest.NewRequest("GET", "/foo", nil))
+
+		resp := w.Result()
+		if resp.StatusCode != tc.expectedStatus {
+			t.Errorf("Got status code %#v and expected %#v", resp.StatusCode, tc.expectedStatus)
+		}
+
+	}
+}
 
 func TestTokenBasedLoginServiceParseToken(t *testing.T) {
 	key := []byte(".test.")
