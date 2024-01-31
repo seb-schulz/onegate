@@ -1,4 +1,4 @@
-package middleware
+package server
 
 import (
 	"context"
@@ -141,7 +141,7 @@ func TestTokenBasedLoginServiceHandler(t *testing.T) {
 	}
 
 	handler := chi.NewRouter()
-	handler.Get("/login/{token}", ls.Handler)
+	handler.Get("/login/{token}", ls.handler)
 
 	for _, tc := range []struct {
 		expectLogin func(model.LoginOpt)

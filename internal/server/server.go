@@ -13,7 +13,6 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/seb-schulz/onegate/graph"
 	"github.com/seb-schulz/onegate/internal/database"
-	"github.com/seb-schulz/onegate/internal/middleware"
 	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"github.com/seb-schulz/onegate/internal/ui"
 	"github.com/seb-schulz/onegate/internal/usermgr"
@@ -33,7 +32,7 @@ type (
 		Limit                   RouterLimitConfig
 		SessionKey              []byte
 		UserRegistrationEnabled bool
-		Login                   middleware.LoginConfig
+		Login                   LoginConfig
 	}
 
 	ServerConfig struct {
@@ -72,7 +71,7 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 			r.Use(usermgr.Middleware)
 			r.Use(csrfMitigationMiddleware)
 
-			r.Mount("/login", middleware.NewLoginRoute(config.Login))
+			r.Mount("/login", newLoginRoute(config.Login))
 
 			srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
 				DB:                      db,

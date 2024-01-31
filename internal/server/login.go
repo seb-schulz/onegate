@@ -1,4 +1,4 @@
-package middleware
+package server
 
 import (
 	"context"
@@ -81,7 +81,7 @@ func redirectWhenLoggedOut(next http.Handler) http.Handler {
 	})
 }
 
-func NewLoginRoute(lc LoginConfig) http.Handler {
+func newLoginRoute(lc LoginConfig) http.Handler {
 	route := chi.NewRouter()
 
 	route.Use(redirectWhenLoggedOut)
@@ -94,7 +94,7 @@ func NewLoginRoute(lc LoginConfig) http.Handler {
 	})
 
 	tokenSrv := &tokenBasedLoginService{lc.Key, lc.ValidMethods, lc.BaseUrl, model.LoginUser, defaultTargetUrl}
-	route.Get("/{token}", tokenSrv.Handler)
+	route.Get("/{token}", tokenSrv.handler)
 	route.Get("/", ui.Template("login.html.tmpl"))
 
 	return route
@@ -133,7 +133,7 @@ func (ls *tokenBasedLoginService) getLoginUrl(userID uint, expiresIn time.Durati
 	return ls.baseUrl.JoinPath(sigendToken), nil
 }
 
-func (ls *tokenBasedLoginService) Handler(w http.ResponseWriter, r *http.Request) {
+func (ls *tokenBasedLoginService) handler(w http.ResponseWriter, r *http.Request) {
 	defer http.Redirect(w, r, fmt.Sprint(&ls.targetUrl), http.StatusSeeOther)
 
 	logger := httplog.LogEntry(r.Context())

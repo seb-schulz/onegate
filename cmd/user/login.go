@@ -8,8 +8,8 @@ import (
 	"github.com/mdp/qrterminal/v3"
 	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/database"
-	"github.com/seb-schulz/onegate/internal/middleware"
 	"github.com/seb-schulz/onegate/internal/model"
+	"github.com/seb-schulz/onegate/internal/server"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ var loginCmd = &cobra.Command{
 			return fmt.Errorf(errRetrieveUserFormat, r.Error)
 		}
 
-		url, err := middleware.TokenBasedLoginUrl(middleware.LoginConfig{
+		url, err := server.TokenBasedLoginUrl(server.LoginConfig{
 			Key:          config.Config.UrlLogin.Key,
 			ValidMethods: config.Config.UrlLogin.ValidMethods,
 			BaseUrl:      *config.Config.BaseUrl.JoinPath("login"),
