@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strconv"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -21,30 +20,31 @@ import (
 )
 
 type (
-	client struct {
-		ID          uint
-		Secret      string
-		RedirectURI string
+	Redirecter interface {
+		RedirectURI() string
 	}
 
-	clientFinder interface {
-		firstClient(ctx context.Context, id uint) (*client, error)
+	client interface {
+		ClientID() string
+		verifyClientSecret(string) error
+		Redirecter
 	}
 
-	authorization struct {
-		ID            uint
-		clientID      uint
-		client        client
-		userID        uint
-		state         string
-		code          string
-		codeChallenge string
+	clientByClientIDFn func(ctx context.Context, clientID string) (client, error)
+
+	authorization interface {
+		ClientID() string
+		UserID() uint
+		State() string
+		Code() string
+		CodeChallenge() string
+		Redirecter
 	}
 
 	authorizationRequestHandler struct {
-		clientFinder     clientFinder
+		clientByClientID clientByClientIDFn
 		authorizationMgr interface {
-			createAuthorization(ctx context.Context, client *client, state string, codeChallenge string) error
+			createAuthorization(ctx context.Context, client client, state string, codeChallenge string) error
 		}
 		loginUrl url.URL
 	}
@@ -52,28 +52,17 @@ type (
 	authorizationResponseHandler struct {
 		authorizationMgr interface {
 			updateAuthorizationUserID(ctx context.Context, userID uint) error
-			authorizationFromContext(ctx context.Context) *authorization
+			authorizationFromContext(ctx context.Context) authorization
 		}
 	}
 
 	tokenHandler struct {
-		clientFinder     clientFinder
+		clientByClientID clientByClientIDFn
 		authorizationMgr interface {
-			getAuthorizationByCode(ctx context.Context, code string) (*authorization, error)
+			getAuthorizationByCode(ctx context.Context, code string) (authorization, error)
 		}
 	}
 )
-
-func (a *authorization) IDStr() string {
-	return fmt.Sprint(a.ID)
-}
-
-func (c *client) verifySecret(s string) error {
-	if c.Secret != s {
-		return fmt.Errorf("secret is not equal")
-	}
-	return nil
-}
 
 func (auth authorizationRequestHandler) checkResponseType(response_type string) error {
 	if response_type != "code" {
@@ -82,23 +71,21 @@ func (auth authorizationRequestHandler) checkResponseType(response_type string) 
 	return nil
 }
 
-func (auth authorizationRequestHandler) parseClientID(r *http.Request) (uint, error) {
-	cIDStr := r.FormValue("client_id")
-	if !(r.Method == "GET" || r.Method == "POST") ||
-		cIDStr == "" {
-		return 0, errors.ErrInvalidRequest
+func (auth authorizationRequestHandler) checkMethod(r *http.Request) error {
+	if !(r.Method == "GET" || r.Method == "POST") {
+		return errors.ErrInvalidRequest
 	}
 
-	id, err := strconv.ParseUint(cIDStr, 10, 32)
-	if err != nil {
-		return 0, errors.ErrInvalidRequest
-	}
-
-	return uint(id), nil
+	return nil
 }
 
 func (auth authorizationRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// log.Printf("Query params: %#v", r.URL.Query())
+	if err := auth.checkMethod(r); err != nil {
+		http.Error(w, errors.Descriptions[err], errors.StatusCodes[err])
+		return
+	}
+
 	if err := auth.checkResponseType(r.FormValue("response_type")); err != nil {
 		http.Error(w, errors.Descriptions[err], errors.StatusCodes[err])
 		return
@@ -108,13 +95,7 @@ func (auth authorizationRequestHandler) ServeHTTP(w http.ResponseWriter, r *http
 		panic("not implemented yet")
 	}
 
-	clientID, err := auth.parseClientID(r)
-	if err != nil {
-		http.Error(w, errors.Descriptions[err], errors.StatusCodes[err])
-		return
-	}
-
-	client, err := auth.clientFinder.firstClient(r.Context(), clientID)
+	client, err := auth.clientByClientID(r.Context(), r.FormValue("client_id"))
 	if err != nil {
 		http.Error(w, errors.Descriptions[errors.ErrInvalidRequest], errors.StatusCodes[err])
 	}
@@ -126,19 +107,19 @@ func (auth authorizationRequestHandler) ServeHTTP(w http.ResponseWriter, r *http
 	http.Redirect(w, r, fmt.Sprint(&auth.loginUrl), http.StatusSeeOther)
 }
 
-func (auth *authorizationResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (auth authorizationResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	auth.authorizationMgr.updateAuthorizationUserID(r.Context(), 1)
 	authReq := auth.authorizationMgr.authorizationFromContext(r.Context())
 	q := url.Values{}
-	q.Add("code", authReq.code)
-	q.Add("state", authReq.state)
-	http.Redirect(w, r, fmt.Sprintf("%v?%v", authReq.client.RedirectURI, q.Encode()), http.StatusFound)
+	q.Add("code", authReq.Code())
+	q.Add("state", authReq.State())
+	http.Redirect(w, r, fmt.Sprintf("%v?%v", authReq.RedirectURI(), q.Encode()), http.StatusFound)
 }
 
 func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// s, _ := io.ReadAll(r.Body)
 	// log.Println(string(s))
-	client, err := th.verifyClient(r)
+	client, err := th.getAndVerifyClient(r)
 	if err != nil {
 		log.Printf("cannot verify client: %v", err)
 		http.Error(w, "invalid", http.StatusBadRequest)
@@ -163,7 +144,7 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if authReq.clientID != client.ID {
+	if authReq.ClientID() != client.ClientID() {
 		log.Println("missmach between authorization and client")
 		http.Error(w, "not implemented yet", http.StatusNotImplemented)
 		return
@@ -189,9 +170,9 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func (th *tokenHandler) checkCodeChallenge(r *http.Request, auth *authorization) error {
+func (th *tokenHandler) checkCodeChallenge(r *http.Request, auth authorization) error {
 	cv := r.FormValue("code_verifier")
-	if subtle.ConstantTimeCompare([]byte(auth.codeChallenge), []byte(oauth2.S256ChallengeFromVerifier(cv))) != 1 {
+	if subtle.ConstantTimeCompare([]byte(auth.CodeChallenge()), []byte(oauth2.S256ChallengeFromVerifier(cv))) != 1 {
 		return fmt.Errorf("missmatch of code challenge")
 	}
 	return nil
@@ -204,7 +185,7 @@ func (th *tokenHandler) checkGrantType(r *http.Request) error {
 	return nil
 }
 
-func (th *tokenHandler) verifyClient(r *http.Request) (*client, error) {
+func (th *tokenHandler) getAndVerifyClient(r *http.Request) (client, error) {
 	var clientID, secret string
 
 	clientID, secret, ok := r.BasicAuth()
@@ -213,41 +194,76 @@ func (th *tokenHandler) verifyClient(r *http.Request) (*client, error) {
 		secret = r.FormValue("client_secret")
 	}
 
-	cID, err := strconv.ParseUint(clientID, 10, 32)
-	if err != nil {
-		return nil, fmt.Errorf("invalid client ID: %v", err)
-	}
-
-	client, err := th.clientFinder.firstClient(r.Context(), uint(cID))
+	client, err := th.clientByClientID(r.Context(), clientID)
 	if err != nil {
 		return nil, fmt.Errorf("cannot fetch client: %v", err)
 	}
 
-	if err := client.verifySecret(secret); err != nil {
+	if err := client.verifyClientSecret(secret); err != nil {
 		return nil, err
 	}
 	return client, nil
 }
 
-type mockClientMgr []*client
+type mockClient struct{ r string }
 
-func (cm *mockClientMgr) firstClient(ctx context.Context, id uint) (*client, error) {
-	for _, c := range *cm {
-		if c.ID == id {
-			return c, nil
-		}
+func (mc *mockClient) ClientID() string {
+	return "123"
+}
+
+func (mc *mockClient) verifyClientSecret(s string) error {
+	if s != "secret" {
+		return fmt.Errorf("secret does not match")
 	}
-	return nil, fmt.Errorf("not found")
+	return nil
+}
 
+func (mc *mockClient) RedirectURI() string {
+	return mc.r
+}
+
+type mockAuthorization struct {
+	userID        uint
+	state         string
+	codeChallenge string
+	redirectURI   string
+}
+
+func (ma *mockAuthorization) ClientID() string {
+	return "123"
+}
+
+func (ma *mockAuthorization) UserID() uint {
+	return ma.userID
+}
+
+func (ma *mockAuthorization) State() string {
+	return ma.state
+}
+
+func (ma *mockAuthorization) Code() string {
+	return "mno"
+}
+
+func (ma *mockAuthorization) CodeChallenge() string {
+	return ma.codeChallenge
+}
+
+func (ma *mockAuthorization) RedirectURI() string {
+	return ma.redirectURI
+}
+
+func (ma *mockAuthorization) IDStr() string {
+	return ma.ClientID()
 }
 
 type mockAuthorizationMgr struct {
-	*sessionmgr.StorageManager[*authorization]
-	currentAuthorization *authorization
+	*sessionmgr.StorageManager[*mockAuthorization]
+	currentAuthorization *mockAuthorization
 }
 
-func (auth *mockAuthorizationMgr) createAuthorization(ctx context.Context, client *client, state, codeChallenge string) error {
-	auth.currentAuthorization = &authorization{ID: 1, clientID: client.ID, client: *client, state: state, code: "1", codeChallenge: codeChallenge}
+func (auth *mockAuthorizationMgr) createAuthorization(ctx context.Context, client client, state, codeChallenge string) error {
+	auth.currentAuthorization = &mockAuthorization{state: state, codeChallenge: codeChallenge, redirectURI: client.RedirectURI()}
 	return nil
 }
 
@@ -256,12 +272,12 @@ func (auth *mockAuthorizationMgr) updateAuthorizationUserID(ctx context.Context,
 	return nil
 }
 
-func (auth *mockAuthorizationMgr) getAuthorizationByCode(ctx context.Context, code string) (*authorization, error) {
+func (auth *mockAuthorizationMgr) getAuthorizationByCode(ctx context.Context, code string) (authorization, error) {
 	return auth.currentAuthorization, nil
 }
 
-func (auth *mockAuthorizationMgr) authorizationFromContext(ctx context.Context) *authorization {
-	return auth.FromContext(ctx)
+func (auth *mockAuthorizationMgr) authorizationFromContext(ctx context.Context) authorization {
+	return auth.currentAuthorization
 }
 
 func TestAuthCodeFlow(t *testing.T) {
@@ -285,15 +301,17 @@ func TestAuthCodeFlow(t *testing.T) {
 	defer client_ts.Close()
 
 	mock := &mockAuthorizationMgr{}
-	mock.StorageManager = sessionmgr.NewStorage[*authorization]("authorization", func(ctx context.Context) (*authorization, error) {
+	mock.StorageManager = sessionmgr.NewStorage[*mockAuthorization]("authorization", func(ctx context.Context) (*mockAuthorization, error) {
 		return mock.currentAuthorization, nil
 	})
 
-	mockClientMgr := &mockClientMgr{&client{123, "secret", client_ts.URL}}
+	clientByClientID := func(ctx context.Context, clientID string) (client, error) {
+		return &mockClient{client_ts.URL}, nil
+	}
 
 	route := chi.NewRouter()
 	authorizationRequestHandler := &authorizationRequestHandler{
-		clientFinder:     mockClientMgr,
+		clientByClientID: clientByClientID,
 		loginUrl:         url.URL{Path: "/callback"},
 		authorizationMgr: mock,
 	}
@@ -304,7 +322,7 @@ func TestAuthCodeFlow(t *testing.T) {
 	}
 	route.With(mock.Handler).Get("/callback", authorizationResponseHandler.ServeHTTP)
 
-	tokenHandler := &tokenHandler{clientFinder: mockClientMgr, authorizationMgr: mock}
+	tokenHandler := &tokenHandler{clientByClientID: clientByClientID, authorizationMgr: mock}
 	route.Post("/token", tokenHandler.ServeHTTP)
 
 	ts := httptest.NewServer(route)
