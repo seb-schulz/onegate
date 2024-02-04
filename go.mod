@@ -18,6 +18,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.5.0 // indirect
 	github.com/go-webauthn/x v0.1.6 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-tpm v0.9.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
@@ -28,6 +29,8 @@ require (
 	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
 	golang.org/x/term v0.16.0 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )
 
@@ -36,6 +39,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-chi/chi/v5 v5.0.11
+	github.com/go-oauth2/oauth2/v4 v4.5.2
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/go-webauthn/webauthn v0.10.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
@@ -60,6 +64,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
+	golang.org/x/oauth2 v0.16.0
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.17.0 // indirect
