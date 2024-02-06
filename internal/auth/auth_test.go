@@ -20,25 +20,13 @@ import (
 )
 
 type (
-	Redirecter interface {
-		RedirectURI() string
-	}
-
-	client interface {
-		ClientID() string
-		verifyClientSecret(string) error
-		Redirecter
-	}
-
-	clientByClientIDFn func(ctx context.Context, clientID string) (client, error)
-
 	authorization interface {
 		ClientID() string
 		UserID() uint
 		State() string
 		Code() string
 		CodeChallenge() string
-		Redirecter
+		redirecter
 	}
 
 	authorizationRequestHandler struct {
@@ -61,6 +49,7 @@ type (
 		authorizationMgr interface {
 			getAuthorizationByCode(ctx context.Context, code string) (authorization, error)
 		}
+		ClientSecretVerifier
 	}
 )
 
@@ -199,7 +188,7 @@ func (th *tokenHandler) getAndVerifyClient(r *http.Request) (client, error) {
 		return nil, fmt.Errorf("cannot fetch client: %v", err)
 	}
 
-	if err := client.verifyClientSecret(secret); err != nil {
+	if err := client.verifyClientSecret(th.ClientSecretVerifier, secret); err != nil {
 		return nil, err
 	}
 	return client, nil
@@ -211,7 +200,7 @@ func (mc *mockClient) ClientID() string {
 	return "123"
 }
 
-func (mc *mockClient) verifyClientSecret(s string) error {
+func (mc *mockClient) verifyClientSecret(h ClientSecretVerifier, s string) error {
 	if s != "secret" {
 		return fmt.Errorf("secret does not match")
 	}

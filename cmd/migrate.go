@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/seb-schulz/onegate/internal/auth"
 	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/database"
 	"github.com/seb-schulz/onegate/internal/model"
@@ -22,7 +23,7 @@ var migrateCmd = &cobra.Command{
 			return err
 		}
 
-		if err := db.AutoMigrate(model.User{}, model.Credential{}, model.Session{}, model.AuthSession{}); err != nil {
+		if err := db.AutoMigrate(model.User{}, model.Credential{}, model.Session{}, model.AuthSession{}, auth.Client{}); err != nil {
 			return fmt.Errorf("migration failed: %v", err)
 		}
 

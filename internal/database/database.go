@@ -42,8 +42,7 @@ func WithDebug(debug bool) optFuncs {
 func Middleware(tx *gorm.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), ctxDatabaseKey, tx.WithContext(context.Background()))
-			next.ServeHTTP(w, r.WithContext(ctx))
+			next.ServeHTTP(w, r.WithContext(WithContext(r.Context(), tx)))
 		})
 	}
 }
@@ -54,6 +53,10 @@ func FromContext(ctx context.Context) *gorm.DB {
 		panic("database connection does not exist on context")
 	}
 	return raw
+}
+
+func WithContext(ctx context.Context, tx *gorm.DB) context.Context {
+	return context.WithValue(ctx, ctxDatabaseKey, tx.WithContext(context.Background()))
 }
 
 type transactionOpts struct {
