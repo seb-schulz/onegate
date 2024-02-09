@@ -10,9 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/seb-schulz/onegate/internal/database"
-
-	"go.pact.im/x/option"
-	"go.pact.im/x/phcformat"
 )
 
 func TestClientByClientID(t *testing.T) {
@@ -78,39 +75,23 @@ func TestCreateClient(t *testing.T) {
 }
 
 func TestClientSecretKeyer(t *testing.T) {
-	h := newPBKDF2Key([]byte{1, 2, 3}, 1, 32, sha1.New)
 
-	key := []byte("a")
-	log.Println(h.phcString(key))
-	fakeClient := Client{ClientSecret: h.phcString(key)}
+	for _, h := range []ClientSecretHasher{
+		newPBKDF2Key([]byte{1, 2, 3}, 1, 32, sha1.New),
+		newArgon2Id([]byte{1, 2, 3}, 1, 1, 1, 32),
+	} {
 
-	if err := fakeClient.VerifyClientSecret(base64.URLEncoding.EncodeToString(key)); err != nil {
-		t.Errorf("verification failed with key=%s and err=%v", key, err)
+		key := []byte("a")
+		log.Println(h.phcString(key))
+		fakeClient := Client{ClientSecret: h.phcString(key)}
+
+		if err := fakeClient.VerifyClientSecret(base64.URLEncoding.EncodeToString(key)); err != nil {
+			t.Errorf("verification failed with key=%s and err=%v", key, err)
+		}
+		// if clientSecretHasherType(hashedKey[0]) != clientSecretHasherPBKDF2 {
+		// 	t.Errorf("first byte is not expected type")
+		// }
+		// t.Error(fakeClient)
 	}
 
-	// if clientSecretHasherType(hashedKey[0]) != clientSecretHasherPBKDF2 {
-	// 	t.Errorf("first byte is not expected type")
-	// }
-	// t.Error(fakeClient)
-}
-
-func TestPHCFormat(t *testing.T) {
-	h := phcformat.MustParse("$name$v=42$k=v$salt$hash")
-	fmt.Println(h)
-	// fmt.Println(h.ID)
-	// fmt.Println(option.UnwrapOrZero(h.Version))
-	// fmt.Println(option.UnwrapOrZero(h.Params))
-	// fmt.Println(option.UnwrapOrZero(h.Salt))
-	// fmt.Println(option.UnwrapOrZero(h.Output))
-
-	h = phcformat.MustParse("$pbkdf2-sha1$i=1,k=32$AQID$gbkoCyl+kgPHGtDI1sbgzYTjh1vawpwGBu7TsfyyQ7Y")
-	fmt.Println(h)
-	fmt.Println(h.ID)
-	fmt.Println(option.UnwrapOrZero(h.Salt))
-	fmt.Println(option.UnwrapOrZero(h.Output))
-	fmt.Println(option.UnwrapOrZero(h.Params))
-
-	for it := phcformat.IterParams(option.UnwrapOrZero(h.Params)); it.Valid; it = it.Next() {
-		fmt.Println(it.Name, it.Value)
-	}
 }
