@@ -188,7 +188,7 @@ func (th *tokenHandler) getAndVerifyClient(r *http.Request) (client, error) {
 		return nil, fmt.Errorf("cannot fetch client: %v", err)
 	}
 
-	if err := client.verifyClientSecret(th.ClientSecretVerifier, secret); err != nil {
+	if err := client.VerifyClientSecret(secret); err != nil {
 		return nil, err
 	}
 	return client, nil
@@ -200,7 +200,7 @@ func (mc *mockClient) ClientID() string {
 	return "123"
 }
 
-func (mc *mockClient) verifyClientSecret(h ClientSecretVerifier, s string) error {
+func (mc *mockClient) VerifyClientSecret(s string) error {
 	if s != "secret" {
 		return fmt.Errorf("secret does not match")
 	}
@@ -353,7 +353,7 @@ func TestAuthCodeFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	log.Println(tok)
-	log.Println(tok.Extra("id_token"))
+	// log.Println(tok.Extra("id_token"))
 
 	// client := conf.Client(ctx, tok)
 	// client.Get("...")

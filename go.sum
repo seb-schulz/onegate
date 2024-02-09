@@ -207,6 +207,10 @@ github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0/go.mod h1:/LWChgwKmv
 github.com/yudai/gojsondiff v1.0.0/go.mod h1:AY32+k2cwILAkW1fbgxQ5mUmMiZFgLIV+FBNExI05xg=
 github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82/go.mod h1:lgjkn3NuSvDfVJdfcVVdX+jpBxNmX4rDAzaS45IcYoM=
 github.com/yudai/pp v2.0.1+incompatible/go.mod h1:PuxR/8QJ7cyCkFp/aUDS+JY727OFEZkTdatxwunjIkc=
+go.pact.im/x/option v0.0.6 h1:8lam/SPqUxr/AhQV8S6pNs+2npB+Fcwgmfwqea6vrik=
+go.pact.im/x/option v0.0.6/go.mod h1:mpzKc/UIz4m3X4/47trnsCXP15YoUJsAcSZTiqTkmqA=
+go.pact.im/x/phcformat v0.0.6 h1:1Vww+WEVbTTxyr+SLSsHaI3zCYwOe7KmY/8RRZ4RVgU=
+go.pact.im/x/phcformat v0.0.6/go.mod h1:q+HHj0v7P1fA3WObC9Ts7YvAm21Jmviw+Kep/DlJjRc=
 go.uber.org/multierr v1.11.0 h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=
 go.uber.org/multierr v1.11.0/go.mod h1:20+QtiLqy0Nd6FdQB9TLXag12DsQkrbs3htMFfDN80Y=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
