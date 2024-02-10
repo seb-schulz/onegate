@@ -48,7 +48,7 @@ func TestCreateClient(t *testing.T) {
 	tx := db.Begin()
 	defer tx.Rollback()
 
-	hash := newPBKDF2Key([]byte("abc"), 1024, 32, sha1.New)
+	hash := newPBKDF2Key([]byte("abc"), 1024, sha1.New)
 
 	cID, cs, err := CreateClient(database.WithContext(context.Background(), tx), hash, "hello world", "http://localhost:9000/cb")
 	if err != nil {
@@ -87,8 +87,8 @@ func FuzzClientSecretKeyer(f *testing.F) {
 		pbkdf2Seed := make([]byte, 3)
 		gen.Read(pbkdf2Seed)
 		for _, h := range []ClientSecretHasher{
-			newPBKDF2Key(pbkdf2Seed, 1, 32, sha1.New),
-			newArgon2Id(pbkdf2Seed, 1, 1, 1, 32),
+			newPBKDF2Key(pbkdf2Seed, 1, sha1.New),
+			newArgon2Id(pbkdf2Seed, 1, 1, 1),
 		} {
 			key := make([]byte, 32)
 			gen.Read(key)
@@ -99,9 +99,6 @@ func FuzzClientSecretKeyer(f *testing.F) {
 				t.Errorf("verification failed with key=%s and err=%v", key, err)
 				t.FailNow()
 			}
-			// if clientSecretHasherType(hashedKey[0]) != clientSecretHasherPBKDF2 {
-			// 	t.Errorf("first byte is not expected type")
-			// }
 			// t.Error(fakeClient)
 		}
 	})

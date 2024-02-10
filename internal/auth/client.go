@@ -124,18 +124,17 @@ func CreateClient(ctx context.Context, clientSecretHash ClientSecretHasher, desc
 }
 
 type pbkdf2Key struct {
-	salt   []byte
-	iter   int
-	keyLen int
-	hash   func() hash.Hash
+	salt []byte
+	iter int
+	hash func() hash.Hash
 }
 
-func newPBKDF2Key(salt []byte, iter, keyLen int, h func() hash.Hash) *pbkdf2Key {
-	return &pbkdf2Key{salt, iter, keyLen, h}
+func newPBKDF2Key(salt []byte, iter int, h func() hash.Hash) *pbkdf2Key {
+	return &pbkdf2Key{salt, iter, h}
 }
 
 func newPBKDF2KeyFromPHCWithSha1(hash phcformat.Hash) *pbkdf2Key {
-	var iter, keyLen int
+	var iter int
 	for it := phcformat.IterParams(option.UnwrapOrZero(hash.Params)); it.Valid; it = it.Next() {
 		var err error
 
@@ -145,11 +144,6 @@ func newPBKDF2KeyFromPHCWithSha1(hash phcformat.Hash) *pbkdf2Key {
 			if err != nil {
 				panic(fmt.Errorf("invalid iter format: %v", err))
 			}
-		case "k":
-			keyLen, err = strconv.Atoi(it.Value)
-			if err != nil {
-				panic(fmt.Errorf("invalid keyLen format: %v", err))
-			}
 		default:
 			panic("invalid format")
 		}
@@ -158,11 +152,11 @@ func newPBKDF2KeyFromPHCWithSha1(hash phcformat.Hash) *pbkdf2Key {
 	if err != nil {
 		panic("invalid salt")
 	}
-	return newPBKDF2Key(rawSalt, iter, keyLen, sha1.New)
+	return newPBKDF2Key(rawSalt, iter, sha1.New)
 }
 
 func (h *pbkdf2Key) rawKey(bKey []byte) []byte {
-	return pbkdf2.Key(bKey, h.salt, h.iter, h.keyLen, sha1.New)
+	return pbkdf2.Key(bKey, h.salt, h.iter, 30, sha1.New)
 }
 
 func (h *pbkdf2Key) Key(bKey []byte) []byte {
@@ -171,7 +165,7 @@ func (h *pbkdf2Key) Key(bKey []byte) []byte {
 }
 
 func (h *pbkdf2Key) phcString(key []byte) string {
-	return fmt.Sprintf("$pbkdf2-sha1$i=%d,k=%d$%s$%s", h.iter, h.keyLen, base64.RawStdEncoding.EncodeToString(h.salt), base64.RawStdEncoding.EncodeToString(h.rawKey(key)))
+	return fmt.Sprintf("$pbkdf2-sha1$i=%d$%s$%s", h.iter, base64.RawStdEncoding.EncodeToString(h.salt), base64.RawStdEncoding.EncodeToString(h.rawKey(key)))
 }
 
 type argon2IdKey struct {
@@ -182,12 +176,12 @@ type argon2IdKey struct {
 	keyLen  uint32
 }
 
-func newArgon2Id(salt []byte, time, memory uint32, threads uint8, keyLen uint32) *argon2IdKey {
-	return &argon2IdKey{salt, time, memory, threads, keyLen}
+func newArgon2Id(salt []byte, time, memory uint32, threads uint8) *argon2IdKey {
+	return &argon2IdKey{salt, time, memory, threads, 30}
 }
 
 func newArgon2IdFromPHC(hash phcformat.Hash) *argon2IdKey {
-	var threads, time, memory, keyLen uint64
+	var threads, time, memory uint64
 
 	for it := phcformat.IterParams(option.UnwrapOrZero(hash.Params)); it.Valid; it = it.Next() {
 		var err error
@@ -208,11 +202,6 @@ func newArgon2IdFromPHC(hash phcformat.Hash) *argon2IdKey {
 			if err != nil {
 				panic(fmt.Errorf("invalid iter format: %v", err))
 			}
-		case "k":
-			keyLen, err = strconv.ParseUint(it.Value, 10, 32)
-			if err != nil {
-				panic(fmt.Errorf("invalid iter format: %v", err))
-			}
 		default:
 			panic("invalid format")
 		}
@@ -221,7 +210,7 @@ func newArgon2IdFromPHC(hash phcformat.Hash) *argon2IdKey {
 	if err != nil {
 		panic("invalid salt")
 	}
-	return newArgon2Id(rawSalt, uint32(time), uint32(memory), uint8(threads), uint32(keyLen))
+	return newArgon2Id(rawSalt, uint32(time), uint32(memory), uint8(threads))
 }
 
 func (h *argon2IdKey) rawKey(bKey []byte) []byte {
@@ -234,7 +223,7 @@ func (h *argon2IdKey) Key(bKey []byte) []byte {
 }
 
 func (h *argon2IdKey) phcString(key []byte) string {
-	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d,k=%d$%s$%s", argon2.Version, h.memory, h.time, h.threads, h.keyLen, base64.RawStdEncoding.EncodeToString(h.salt), base64.RawStdEncoding.EncodeToString(h.rawKey(key)))
+	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, h.memory, h.time, h.threads, base64.RawStdEncoding.EncodeToString(h.salt), base64.RawStdEncoding.EncodeToString(h.rawKey(key)))
 }
 
 var readRand = func(b []byte) error {
@@ -243,10 +232,10 @@ var readRand = func(b []byte) error {
 }
 
 func NewClientSecretHasher() ClientSecretHasher {
-	randSalt := make([]byte, 18)
+	randSalt := make([]byte, 15)
 	if err := readRand(randSalt); err != nil {
 		panic("cannot generate salt")
 
 	}
-	return newArgon2Id(randSalt, 1, 64*1024, 4, 32)
+	return newArgon2Id(randSalt, 2, 64*1024, 4)
 }
