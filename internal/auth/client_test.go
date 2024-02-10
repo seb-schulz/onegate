@@ -6,10 +6,12 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"math/rand"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/seb-schulz/onegate/internal/database"
+	"go.pact.im/x/phcformat"
 )
 
 func TestClientByClientID(t *testing.T) {
@@ -74,25 +76,68 @@ func TestCreateClient(t *testing.T) {
 	// t.Errorf("client=%#v, secret=%s", c, c.ClientSecret)
 }
 
-func TestClientSecretKeyer(t *testing.T) {
+func FuzzClientSecretKeyer(f *testing.F) {
 
-	for _, h := range []ClientSecretHasher{
-		newPBKDF2Key([]byte{1, 2, 3}, 1, 32, sha1.New),
-		newArgon2Id([]byte{1, 2, 3}, 1, 1, 1, 32),
-		NewClientSecretHasher(),
-	} {
+	for i := 0; i < 100; i++ {
+		f.Add(rand.Int())
+	}
+	f.Fuzz(func(t *testing.T, seed int) {
+		gen := rand.New(rand.NewSource(int64(seed)))
 
-		key := []byte("a")
-		log.Println(h.phcString(key))
-		fakeClient := Client{ClientSecret: h.phcString(key)}
+		pbkdf2Seed := make([]byte, 3)
+		gen.Read(pbkdf2Seed)
+		for _, h := range []ClientSecretHasher{
+			newPBKDF2Key(pbkdf2Seed, 1, 32, sha1.New),
+			newArgon2Id(pbkdf2Seed, 1, 1, 1, 32),
+		} {
+			key := make([]byte, 32)
+			gen.Read(key)
+
+			fakeClient := Client{ClientSecret: h.phcString(key)}
+
+			if err := fakeClient.VerifyClientSecret(base64.URLEncoding.EncodeToString(key)); err != nil {
+				t.Errorf("verification failed with key=%s and err=%v", key, err)
+				t.FailNow()
+			}
+			// if clientSecretHasherType(hashedKey[0]) != clientSecretHasherPBKDF2 {
+			// 	t.Errorf("first byte is not expected type")
+			// }
+			// t.Error(fakeClient)
+		}
+	})
+
+}
+
+func TestNewClientSecretHasher(t *testing.T) {
+	gen := rand.New(rand.NewSource(int64(1)))
+
+	_orig := readRand
+	readRand = func(b []byte) error {
+		_, err := gen.Read(b)
+		return err
+	}
+
+	defer func() {
+		readRand = _orig
+	}()
+
+	for i := 1; i <= 10; i++ {
+		key := make([]byte, 32)
+		gen.Read(key)
+
+		phcHash := NewClientSecretHasher().phcString(key)
+		log.Println(phcHash)
+		fakeClient := Client{ClientSecret: phcHash}
 
 		if err := fakeClient.VerifyClientSecret(base64.URLEncoding.EncodeToString(key)); err != nil {
 			t.Errorf("verification failed with key=%s and err=%v", key, err)
 		}
-		// if clientSecretHasherType(hashedKey[0]) != clientSecretHasherPBKDF2 {
-		// 	t.Errorf("first byte is not expected type")
-		// }
 		// t.Error(fakeClient)
 	}
 
+}
+
+func TestMustParsePhcformat(t *testing.T) {
+	t.Skip()
+	phcformat.MustParse("$argon2id$v=19$m=65536,t=1,p=4,k=32$Ii1+3omeYiOsWbIJ2/plPgG9$8Gw1SSuNrdPsCzkH9O+eXBIsOomJJ0zIdq5G5EaGtIE")
 }

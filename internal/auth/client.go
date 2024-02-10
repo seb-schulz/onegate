@@ -171,7 +171,7 @@ func (h *pbkdf2Key) Key(bKey []byte) []byte {
 }
 
 func (h *pbkdf2Key) phcString(key []byte) string {
-	return fmt.Sprintf("$pbkdf2-sha1$i=%d,k=%d$%s$%s", h.iter, h.keyLen, base64.URLEncoding.EncodeToString(h.salt), base64.RawStdEncoding.EncodeToString(h.rawKey(key)))
+	return fmt.Sprintf("$pbkdf2-sha1$i=%d,k=%d$%s$%s", h.iter, h.keyLen, base64.RawStdEncoding.EncodeToString(h.salt), base64.RawStdEncoding.EncodeToString(h.rawKey(key)))
 }
 
 type argon2IdKey struct {
@@ -234,13 +234,19 @@ func (h *argon2IdKey) Key(bKey []byte) []byte {
 }
 
 func (h *argon2IdKey) phcString(key []byte) string {
-	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d,k=%d$%s$%s", argon2.Version, h.memory, h.time, h.threads, h.keyLen, base64.URLEncoding.EncodeToString(h.salt), base64.RawStdEncoding.EncodeToString(h.rawKey(key)))
+	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d,k=%d$%s$%s", argon2.Version, h.memory, h.time, h.threads, h.keyLen, base64.RawStdEncoding.EncodeToString(h.salt), base64.RawStdEncoding.EncodeToString(h.rawKey(key)))
+}
+
+var readRand = func(b []byte) error {
+	_, err := rand.Read(b)
+	return err
 }
 
 func NewClientSecretHasher() ClientSecretHasher {
 	randSalt := make([]byte, 18)
-	if _, err := rand.Read(randSalt); err != nil {
+	if err := readRand(randSalt); err != nil {
 		panic("cannot generate salt")
+
 	}
 	return newArgon2Id(randSalt, 1, 64*1024, 4, 32)
 }
