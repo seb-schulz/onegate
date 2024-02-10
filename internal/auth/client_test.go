@@ -48,7 +48,7 @@ func TestCreateClient(t *testing.T) {
 
 	hash := newPBKDF2Key([]byte("abc"), 1024, 32, sha1.New)
 
-	cID, cs, err := createClient(database.WithContext(context.Background(), tx), hash, "http://localhost:9000/cb")
+	cID, cs, err := CreateClient(database.WithContext(context.Background(), tx), hash, "hello world", "http://localhost:9000/cb")
 	if err != nil {
 		t.Errorf("cannot create client: %v", err)
 	}
@@ -79,6 +79,7 @@ func TestClientSecretKeyer(t *testing.T) {
 	for _, h := range []ClientSecretHasher{
 		newPBKDF2Key([]byte{1, 2, 3}, 1, 32, sha1.New),
 		newArgon2Id([]byte{1, 2, 3}, 1, 1, 1, 32),
+		NewClientSecretHasher(),
 	} {
 
 		key := []byte("a")

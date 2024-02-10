@@ -48,6 +48,7 @@ type Client struct {
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	DeletedAt           gorm.DeletedAt `gorm:"index"`
+	Description         string
 	ClientSecret        string
 	InternalRedirectURI string `gorm:"column:redirect_uri"`
 }
@@ -95,7 +96,7 @@ func clientByClientID(ctx context.Context, clientID string) (client, error) {
 	return &c, nil
 }
 
-func createClient(ctx context.Context, clientSecretHash ClientSecretHasher, redirectURL string) (clientID string, clientSecret string, err error) {
+func CreateClient(ctx context.Context, clientSecretHash ClientSecretHasher, desc, redirectURL string) (clientID string, clientSecret string, err error) {
 	id, err := uuid.NewRandom()
 	if err != nil {
 		panic(fmt.Errorf("cannot generate uuid: %v", err))
@@ -111,6 +112,7 @@ func createClient(ctx context.Context, clientSecretHash ClientSecretHasher, redi
 		ID:                  id,
 		ClientSecret:        clientSecretHash.phcString(randSecret[:]),
 		InternalRedirectURI: redirectURL,
+		Description:         desc,
 	}
 
 	r := database.FromContext(ctx).Create(&client)
@@ -233,4 +235,12 @@ func (h *argon2IdKey) Key(bKey []byte) []byte {
 
 func (h *argon2IdKey) phcString(key []byte) string {
 	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d,k=%d$%s$%s", argon2.Version, h.memory, h.time, h.threads, h.keyLen, base64.URLEncoding.EncodeToString(h.salt), base64.RawStdEncoding.EncodeToString(h.rawKey(key)))
+}
+
+func NewClientSecretHasher() ClientSecretHasher {
+	randSalt := make([]byte, 18)
+	if _, err := rand.Read(randSalt); err != nil {
+		panic("cannot generate salt")
+	}
+	return newArgon2Id(randSalt, 1, 64*1024, 4, 32)
 }
