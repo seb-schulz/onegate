@@ -48,9 +48,9 @@ type Client struct {
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	DeletedAt           gorm.DeletedAt `gorm:"index"`
-	Description         string
-	ClientSecret        string
-	InternalRedirectURI string `gorm:"column:redirect_uri"`
+	Description         string         `gorm:"type:VARCHAR(255);not null"`
+	ClientSecret        string         `gorm:"type:VARCHAR(255);not null"`
+	InternalRedirectURI string         `gorm:"column:redirect_uri;type:VARCHAR(255);not null"`
 }
 
 func (c *Client) ClientID() string {
