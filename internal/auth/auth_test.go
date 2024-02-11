@@ -20,15 +20,6 @@ import (
 )
 
 type (
-	authorization interface {
-		ClientID() string
-		UserID() uint
-		State() string
-		Code() string
-		CodeChallenge() string
-		redirecter
-	}
-
 	authorizationRequestHandler struct {
 		clientByClientID clientByClientIDFn
 		authorizationMgr interface {

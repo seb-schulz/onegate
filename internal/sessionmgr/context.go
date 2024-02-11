@@ -15,3 +15,7 @@ func FromContext(ctx context.Context) *Token {
 	}
 	return raw
 }
+
+func ToContext(ctx context.Context, t *Token) context.Context {
+	return context.WithValue(ctx, contextToken, t)
+}

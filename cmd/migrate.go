@@ -23,7 +23,7 @@ var migrateCmd = &cobra.Command{
 			return err
 		}
 
-		if err := db.AutoMigrate(model.User{}, model.Credential{}, model.Session{}, model.AuthSession{}, auth.Client{}); err != nil {
+		if err := db.AutoMigrate(model.User{}, model.Credential{}, model.Session{}, model.AuthSession{}, auth.Client{}, auth.Authorization{}); err != nil {
 			return fmt.Errorf("migration failed: %v", err)
 		}
 

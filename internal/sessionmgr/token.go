@@ -45,7 +45,7 @@ func newToken() tokenizer {
 }
 
 func (s *Token) initialize() {
-	s.UUID = uuid.Must(uuid.NewRandom())
+	s.UUID = uuid.New()
 	s.CreatedAt = time.Now().Truncate(time.Second)
 
 	if _, err := rand.Read(s.salt[:]); err != nil {
