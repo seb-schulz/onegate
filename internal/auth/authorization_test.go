@@ -13,7 +13,7 @@ import (
 	"github.com/seb-schulz/onegate/internal/sessionmgr"
 )
 
-func TestCreateAuthorization(t *testing.T) {
+func TestAuthorizationMgrCreate(t *testing.T) {
 	db, err := database.Open()
 	if err != nil {
 		panic(err)
@@ -35,7 +35,7 @@ func TestCreateAuthorization(t *testing.T) {
 		StorageManager: sessionmgr.NewStorage("authorization", FirstAuthorization),
 	}
 
-	if err := authMgr.createAuthorization(ctx, &client, "state", "CodeChallenge"); err != nil {
+	if err := authMgr.create(ctx, &client, "state", "CodeChallenge"); err != nil {
 		t.Errorf("failed to create authorization: %v", err)
 	}
 

@@ -81,7 +81,7 @@ type authorizationMgr struct {
 	*sessionmgr.StorageManager[*Authorization]
 }
 
-func (authMgr *authorizationMgr) createAuthorization(ctx context.Context, client client, state, codeChallenge string) error {
+func (authMgr *authorizationMgr) create(ctx context.Context, client client, state, codeChallenge string) error {
 
 	if state == "" {
 		return fmt.Errorf("state must not be empty")
@@ -113,7 +113,7 @@ func (authMgr *authorizationMgr) createAuthorization(ctx context.Context, client
 	return nil
 }
 
-func (authMgr *authorizationMgr) updateAuthorizationUserID(ctx context.Context, userID uint) error {
+func (authMgr *authorizationMgr) updateUserID(ctx context.Context, userID uint) error {
 	authReq := authMgr.FromContext(ctx)
 	if authReq == nil {
 		return fmt.Errorf("authorization not found")
@@ -127,11 +127,7 @@ func (authMgr *authorizationMgr) updateAuthorizationUserID(ctx context.Context, 
 	return nil
 }
 
-func (authMgr *authorizationMgr) authorizationFromContext(ctx context.Context) authorization {
-	return authMgr.FromContext(ctx)
-}
-
-func (authMgr *authorizationMgr) getAuthorizationByCode(ctx context.Context, code string) (authorization, error) {
+func (authMgr *authorizationMgr) byCode(ctx context.Context, code string) (authorization, error) {
 	authReq := Authorization{}
 	r := database.FromContext(ctx).Where("code = ?", code).First(&authReq)
 

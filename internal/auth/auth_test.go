@@ -23,22 +23,22 @@ type (
 	authorizationRequestHandler struct {
 		clientByClientID clientByClientIDFn
 		authorizationMgr interface {
-			createAuthorization(ctx context.Context, client client, state string, codeChallenge string) error
+			create(ctx context.Context, client client, state string, codeChallenge string) error
 		}
 		loginUrl url.URL
 	}
 
 	authorizationResponseHandler struct {
 		authorizationMgr interface {
-			updateAuthorizationUserID(ctx context.Context, userID uint) error
-			authorizationFromContext(ctx context.Context) authorization
+			updateUserID(ctx context.Context, userID uint) error
+			FromContext(ctx context.Context) authorization
 		}
 	}
 
 	tokenHandler struct {
 		clientByClientID clientByClientIDFn
 		authorizationMgr interface {
-			getAuthorizationByCode(ctx context.Context, code string) (authorization, error)
+			byCode(ctx context.Context, code string) (authorization, error)
 		}
 		ClientSecretVerifier
 	}
@@ -80,7 +80,7 @@ func (auth authorizationRequestHandler) ServeHTTP(w http.ResponseWriter, r *http
 		http.Error(w, errors.Descriptions[errors.ErrInvalidRequest], errors.StatusCodes[err])
 	}
 
-	if auth.authorizationMgr.createAuthorization(r.Context(), client, r.FormValue("state"), r.FormValue("code_challenge")); err != nil {
+	if auth.authorizationMgr.create(r.Context(), client, r.FormValue("state"), r.FormValue("code_challenge")); err != nil {
 		panic("not implemented yet")
 	}
 
@@ -88,8 +88,8 @@ func (auth authorizationRequestHandler) ServeHTTP(w http.ResponseWriter, r *http
 }
 
 func (auth authorizationResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	auth.authorizationMgr.updateAuthorizationUserID(r.Context(), 1)
-	authReq := auth.authorizationMgr.authorizationFromContext(r.Context())
+	auth.authorizationMgr.updateUserID(r.Context(), 1)
+	authReq := auth.authorizationMgr.FromContext(r.Context())
 	q := url.Values{}
 	q.Add("code", authReq.Code())
 	q.Add("state", authReq.State())
@@ -111,7 +111,7 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authReq, err := th.authorizationMgr.getAuthorizationByCode(r.Context(), r.FormValue("code"))
+	authReq, err := th.authorizationMgr.byCode(r.Context(), r.FormValue("code"))
 	if err != nil {
 		log.Printf("authorization not found: %v", err)
 		http.Error(w, "not implemented yet", http.StatusNotImplemented)
@@ -242,21 +242,21 @@ type mockAuthorizationMgr struct {
 	currentAuthorization *mockAuthorization
 }
 
-func (auth *mockAuthorizationMgr) createAuthorization(ctx context.Context, client client, state, codeChallenge string) error {
+func (auth *mockAuthorizationMgr) create(ctx context.Context, client client, state, codeChallenge string) error {
 	auth.currentAuthorization = &mockAuthorization{state: state, codeChallenge: codeChallenge, redirectURI: client.RedirectURI()}
 	return nil
 }
 
-func (auth *mockAuthorizationMgr) updateAuthorizationUserID(ctx context.Context, userID uint) error {
+func (auth *mockAuthorizationMgr) updateUserID(ctx context.Context, userID uint) error {
 	auth.currentAuthorization.userID = 1
 	return nil
 }
 
-func (auth *mockAuthorizationMgr) getAuthorizationByCode(ctx context.Context, code string) (authorization, error) {
+func (auth *mockAuthorizationMgr) byCode(ctx context.Context, code string) (authorization, error) {
 	return auth.currentAuthorization, nil
 }
 
-func (auth *mockAuthorizationMgr) authorizationFromContext(ctx context.Context) authorization {
+func (auth *mockAuthorizationMgr) FromContext(ctx context.Context) authorization {
 	return auth.currentAuthorization
 }
 
