@@ -119,6 +119,10 @@ func (authMgr *authorizationMgr) updateUserID(ctx context.Context, userID uint) 
 		return fmt.Errorf("authorization not found")
 	}
 
+	if authReq.UserID() > 0 {
+		return fmt.Errorf("cannot update user ID twice")
+	}
+
 	r := database.FromContext(ctx).Model(authReq).Update("user_id", userID)
 	if r.Error != nil {
 		return fmt.Errorf("cannot update authorization: %v", r.Error)
