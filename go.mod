@@ -9,7 +9,7 @@ require (
 	github.com/go-chi/httprate v0.8.0
 	github.com/spf13/viper v1.18.2
 	github.com/vektah/gqlparser/v2 v2.5.11
-	golang.org/x/crypto v0.18.0
+	golang.org/x/crypto v0.19.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.5.4
 	gorm.io/gorm v1.25.7
@@ -18,7 +18,7 @@ require (
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.5.0 // indirect
-	github.com/go-webauthn/x v0.1.6 // indirect
+	github.com/go-webauthn/x v0.1.8 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-tpm v0.9.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -28,7 +28,7 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
-	golang.org/x/term v0.16.0 // indirect
+	golang.org/x/term v0.17.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	rsc.io/qr v0.2.0 // indirect
@@ -41,7 +41,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/go-oauth2/oauth2/v4 v4.5.2
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
-	github.com/go-webauthn/webauthn v0.10.0
+	github.com/go-webauthn/webauthn v0.10.1
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.1 // indirect
@@ -67,7 +67,7 @@ require (
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/oauth2 v0.16.0
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.17.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
