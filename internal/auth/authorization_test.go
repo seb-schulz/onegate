@@ -2,7 +2,10 @@ package auth
 
 import (
 	"context"
+	"encoding/base64"
+	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,6 +15,7 @@ import (
 	"github.com/seb-schulz/onegate/internal/database"
 	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/sessionmgr"
+	"gorm.io/gorm"
 )
 
 func TestAuthorizationMgrCreate(t *testing.T) {
@@ -117,4 +121,62 @@ func TestAuthorizationMgrUpdateUserID(t *testing.T) {
 		t.FailNow()
 	}
 
+}
+
+func TestAuthorizationMgrByCode(t *testing.T) {
+	gen := rand.New(rand.NewSource(int64(1)))
+
+	readRand := func(size uint) []byte {
+		b := make([]byte, size)
+		gen.Read(b)
+		return b
+	}
+
+	db, err := database.Open()
+	if err != nil {
+		panic(err)
+	}
+
+	tx := db.Begin()
+	defer tx.Rollback()
+
+	ctx := database.WithContext(context.Background(), tx)
+
+	client := Client{
+		ID: uuid.New(),
+	}
+	tx.FirstOrCreate(&client)
+
+	user := model.User{}
+	tx.FirstOrCreate(&user)
+
+	code := readRand(16)
+
+	r := tx.FirstOrCreate(&Authorization{Client: client, InternalCode: code})
+	if r.Error != nil {
+		t.Errorf("cannot create authorization: %v", r.Error)
+	}
+
+	authMgr := authorizationMgr{
+		StorageManager: sessionmgr.NewStorage("authorization", FirstAuthorization),
+	}
+
+	_, err = authMgr.byCode(ctx, base64.RawStdEncoding.EncodeToString([]byte("non existing error")))
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Errorf("failed but with unexpected error msg: %v", err)
+	} else if err == nil {
+		t.Errorf("expected error but found authorization")
+	}
+
+	_, err = authMgr.byCode(ctx, "expected decoding error")
+	if err == nil {
+		t.Error("expected decoding error")
+	}
+
+	fetchedAuth, err := authMgr.byCode(ctx, base64.RawURLEncoding.EncodeToString(code))
+	if err != nil {
+		t.Errorf("failed to get authorization by code: %v", err)
+	}
+
+	t.Logf("fetchedAuth: %v", fetchedAuth)
 }

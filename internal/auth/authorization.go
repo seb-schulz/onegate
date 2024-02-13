@@ -132,11 +132,16 @@ func (authMgr *authorizationMgr) updateUserID(ctx context.Context, userID uint) 
 }
 
 func (authMgr *authorizationMgr) byCode(ctx context.Context, code string) (authorization, error) {
+	decCode, err := base64.RawStdEncoding.DecodeString(code)
+	if err != nil {
+		return nil, err
+	}
+
 	authReq := Authorization{}
-	r := database.FromContext(ctx).Where("code = ?", code).First(&authReq)
+	r := database.FromContext(ctx).Where("code = ?", decCode).First(&authReq)
 
 	if r.Error != nil {
-		return nil, fmt.Errorf("cannot update authorization: %v", r.Error)
+		return nil, fmt.Errorf("cannot get authorization: %w", r.Error)
 	}
 
 	return &authReq, nil

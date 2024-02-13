@@ -343,7 +343,7 @@ func TestAuthCodeFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	log.Println(tok)
+	t.Log(tok)
 	// log.Println(tok.Extra("id_token"))
 
 	// client := conf.Client(ctx, tok)
