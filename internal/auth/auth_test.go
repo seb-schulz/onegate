@@ -14,35 +14,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-oauth2/oauth2/v4/errors"
+	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/sessionmgr"
+	"gorm.io/gorm"
 
 	"golang.org/x/oauth2"
 )
 
-type (
-	authorizationResponseHandler struct {
-		authorizationMgr interface {
-			updateUserID(ctx context.Context, userID uint) error
-			FromContext(ctx context.Context) authorization
-		}
+type tokenHandler struct {
+	clientByClientID clientByClientIDFn
+	authorizationMgr interface {
+		byCode(ctx context.Context, code string) (authorization, error)
 	}
-
-	tokenHandler struct {
-		clientByClientID clientByClientIDFn
-		authorizationMgr interface {
-			byCode(ctx context.Context, code string) (authorization, error)
-		}
-		ClientSecretVerifier
-	}
-)
-
-func (auth authorizationResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	auth.authorizationMgr.updateUserID(r.Context(), 1)
-	authReq := auth.authorizationMgr.FromContext(r.Context())
-	q := url.Values{}
-	q.Add("code", authReq.Code())
-	q.Add("state", authReq.State())
-	http.Redirect(w, r, fmt.Sprintf("%v?%v", authReq.RedirectURI(), q.Encode()), http.StatusFound)
+	ClientSecretVerifier
 }
 
 func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -246,6 +230,9 @@ func TestAuthCodeFlow(t *testing.T) {
 
 	authorizationResponseHandler := &authorizationResponseHandler{
 		authorizationMgr: mock,
+		currentUserFromContext: func(ctx context.Context) *model.User {
+			return &model.User{Model: gorm.Model{ID: 1}}
+		},
 	}
 	route.With(mock.Handler).Get("/callback", authorizationResponseHandler.ServeHTTP)
 

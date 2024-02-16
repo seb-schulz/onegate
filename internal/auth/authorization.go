@@ -114,7 +114,7 @@ func (authMgr *authorizationMgr) create(ctx context.Context, client client, stat
 }
 
 func (authMgr *authorizationMgr) updateUserID(ctx context.Context, userID uint) error {
-	authReq := authMgr.FromContext(ctx)
+	authReq := authMgr.StorageManager.FromContext(ctx)
 	if authReq == nil {
 		return fmt.Errorf("authorization not found")
 	}
