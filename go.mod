@@ -3,7 +3,7 @@ module github.com/seb-schulz/onegate
 go 1.21
 
 require (
-	github.com/99designs/gqlgen v0.17.43
+	github.com/99designs/gqlgen v0.17.44
 	github.com/evanw/esbuild v0.20.0
 	github.com/go-chi/httplog/v2 v2.0.9
 	github.com/go-chi/httprate v0.8.0
@@ -30,7 +30,7 @@ require (
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3 // indirect
 	golang.org/x/term v0.17.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )
 
