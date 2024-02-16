@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"math/rand"
 	"testing"
 
@@ -123,7 +122,7 @@ func TestNewClientSecretHasher(t *testing.T) {
 		gen.Read(key)
 
 		phcHash := NewClientSecretHasher().phcString(key)
-		log.Println(phcHash)
+		t.Logf("%v", phcHash)
 		fakeClient := Client{ClientSecret: phcHash}
 
 		if err := fakeClient.VerifyClientSecret(base64.URLEncoding.EncodeToString(key)); err != nil {

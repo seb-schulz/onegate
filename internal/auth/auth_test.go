@@ -20,14 +20,6 @@ import (
 )
 
 type (
-	authorizationRequestHandler struct {
-		clientByClientID clientByClientIDFn
-		authorizationMgr interface {
-			create(ctx context.Context, client client, state string, codeChallenge string) error
-		}
-		loginUrl url.URL
-	}
-
 	authorizationResponseHandler struct {
 		authorizationMgr interface {
 			updateUserID(ctx context.Context, userID uint) error
@@ -44,49 +36,6 @@ type (
 	}
 )
 
-func (auth authorizationRequestHandler) checkResponseType(response_type string) error {
-	if response_type != "code" {
-		return errors.ErrUnsupportedResponseType
-	}
-	return nil
-}
-
-func (auth authorizationRequestHandler) checkMethod(r *http.Request) error {
-	if !(r.Method == "GET" || r.Method == "POST") {
-		return errors.ErrInvalidRequest
-	}
-
-	return nil
-}
-
-func (auth authorizationRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// log.Printf("Query params: %#v", r.URL.Query())
-	if err := auth.checkMethod(r); err != nil {
-		http.Error(w, errors.Descriptions[err], errors.StatusCodes[err])
-		return
-	}
-
-	if err := auth.checkResponseType(r.FormValue("response_type")); err != nil {
-		http.Error(w, errors.Descriptions[err], errors.StatusCodes[err])
-		return
-	}
-
-	if r.FormValue("code_challenge_method") != "S256" {
-		panic("not implemented yet")
-	}
-
-	client, err := auth.clientByClientID(r.Context(), r.FormValue("client_id"))
-	if err != nil {
-		http.Error(w, errors.Descriptions[errors.ErrInvalidRequest], errors.StatusCodes[err])
-	}
-
-	if auth.authorizationMgr.create(r.Context(), client, r.FormValue("state"), r.FormValue("code_challenge")); err != nil {
-		panic("not implemented yet")
-	}
-
-	http.Redirect(w, r, fmt.Sprint(&auth.loginUrl), http.StatusSeeOther)
-}
-
 func (auth authorizationResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	auth.authorizationMgr.updateUserID(r.Context(), 1)
 	authReq := auth.authorizationMgr.FromContext(r.Context())
@@ -97,8 +46,6 @@ func (auth authorizationResponseHandler) ServeHTTP(w http.ResponseWriter, r *htt
 }
 
 func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// s, _ := io.ReadAll(r.Body)
-	// log.Println(string(s))
 	client, err := th.getAndVerifyClient(r)
 	if err != nil {
 		log.Printf("cannot verify client: %v", err)
