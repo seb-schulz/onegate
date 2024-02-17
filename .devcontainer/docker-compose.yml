@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   devcontainer:
-    image: mcr.microsoft.com/devcontainers/go:1
+    image: mcr.microsoft.com/devcontainers/go:1.22
     volumes:
       - ..:/workspaces/onegate:cached
     command: sleep infinity
