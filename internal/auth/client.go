@@ -89,7 +89,7 @@ func (c *Client) VerifyClientSecret(s string) error {
 
 func clientByClientID(ctx context.Context, clientID string) (client, error) {
 	var c Client
-	r := database.FromContext(ctx).First(&c)
+	r := database.FromContext(ctx).First(&c, "id = ?", clientID)
 	if errors.Is(r.Error, gorm.ErrRecordNotFound) {
 		return nil, r.Error
 	}
