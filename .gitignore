@@ -357,3 +357,4 @@ __debug_bin*
 go.work
 /data
 .env
+.env.yaml
