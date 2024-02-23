@@ -89,7 +89,6 @@ func newLoginRoute(lc LoginConfig) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ui.AddTemplateValue(r.Context(), "startLogin", false)
 			next.ServeHTTP(w, r)
-
 		})
 	})
 

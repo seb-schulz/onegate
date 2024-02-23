@@ -35,20 +35,19 @@ func TestAuthorizationMgrCreate(t *testing.T) {
 	}
 	tx.FirstOrCreate(&client)
 
-	authMgr := authorizationMgr{
-		StorageManager: sessionmgr.NewStorage("authorization", FirstAuthorization),
-	}
-
-	if err := authMgr.create(ctx, &client, "state", "CodeChallenge"); err != nil {
+	if err := defaultAuthorizationMgr.create(ctx, &client, "state", "CodeChallenge"); err != nil {
 		t.Errorf("failed to create authorization: %v", err)
 	}
 
+	// TODO: assert entries after authorization creation
+	// Extract code below into login handler test
+
 	route := chi.NewRouter()
-	route.Use(authMgr.Handler)
+	route.Use(defaultAuthorizationMgr.Handler)
 	route.Get("/foo", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Ok")
 
-		authReq := authMgr.FromContext(r.Context())
+		authReq := defaultAuthorizationMgr.FromContext(r.Context())
 		if authReq == nil {
 			t.Errorf("cannot find authorization from database")
 		}
@@ -89,25 +88,21 @@ func TestAuthorizationMgrUpdateUserID(t *testing.T) {
 		t.Errorf("cannot create authorization: %v", r.Error)
 	}
 
-	authMgr := authorizationMgr{
-		StorageManager: sessionmgr.NewStorage("authorization", FirstAuthorization),
-	}
-
 	route := chi.NewRouter()
-	route.Use(authMgr.Handler)
+	route.Use(defaultAuthorizationMgr.Handler)
 	route.Get("/foo", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Ok")
 
-		authReq := authMgr.FromContext(r.Context())
+		authReq := defaultAuthorizationMgr.FromContext(r.Context())
 		if authReq == nil {
 			t.Errorf("cannot find authorization from database")
 		}
 
-		if err := authMgr.updateUserID(r.Context(), user.ID); err != nil {
+		if err := defaultAuthorizationMgr.updateUserID(r.Context(), user.ID); err != nil {
 			t.Errorf("cannot updte user ID: %v", err)
 		}
 
-		if err := authMgr.updateUserID(r.Context(), user2.ID); err == nil {
+		if err := defaultAuthorizationMgr.updateUserID(r.Context(), user2.ID); err == nil {
 			t.Errorf("could update user ID twice")
 		}
 
@@ -157,23 +152,19 @@ func TestAuthorizationMgrByCode(t *testing.T) {
 		t.Errorf("cannot create authorization: %v", r.Error)
 	}
 
-	authMgr := authorizationMgr{
-		StorageManager: sessionmgr.NewStorage("authorization", FirstAuthorization),
-	}
-
-	_, err = authMgr.byCode(ctx, base64.RawStdEncoding.EncodeToString([]byte("non existing error")))
+	_, err = defaultAuthorizationMgr.byCode(ctx, base64.RawStdEncoding.EncodeToString([]byte("non existing error")))
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Errorf("failed but with unexpected error msg: %v", err)
 	} else if err == nil {
 		t.Errorf("expected error but found authorization")
 	}
 
-	_, err = authMgr.byCode(ctx, "expected decoding error")
+	_, err = defaultAuthorizationMgr.byCode(ctx, "expected decoding error")
 	if err == nil {
 		t.Error("expected decoding error")
 	}
 
-	fetchedAuth, err := authMgr.byCode(ctx, base64.RawURLEncoding.EncodeToString(code))
+	fetchedAuth, err := defaultAuthorizationMgr.byCode(ctx, base64.RawURLEncoding.EncodeToString(code))
 	if err != nil {
 		t.Errorf("failed to get authorization by code: %v", err)
 	}

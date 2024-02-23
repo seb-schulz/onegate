@@ -13,6 +13,7 @@ import (
 )
 
 type authorization interface {
+	Exists() bool
 	ClientID() string
 	UserID() uint
 	State() string
@@ -35,6 +36,9 @@ type Authorization struct {
 	SessionID             uuid.UUID   `gorm:"column:session_id;type:VARCHAR(191);not null"`
 }
 
+func (a *Authorization) Exists() bool {
+	return a != nil
+}
 func (a *Authorization) ClientID() string {
 	return fmt.Sprint(&a.InternalClientID)
 }
@@ -65,10 +69,10 @@ func (a *Authorization) IDStr() string {
 	return fmt.Sprint(a.ID)
 }
 
-func FirstAuthorization(ctx context.Context) (*Authorization, error) {
+func firstAuthorization(ctx context.Context) (*Authorization, error) {
 	sessionID := sessionmgr.FromContext(ctx).UUID
 	authReq := Authorization{}
-	r := database.FromContext(ctx).Where("session_id = ?", sessionID).First(&authReq)
+	r := database.FromContext(ctx).Preload("Client").Where("session_id = ?", sessionID).First(&authReq)
 
 	if r.Error != nil {
 		return nil, fmt.Errorf("cannot update authorization: %v", r.Error)
@@ -145,4 +149,8 @@ func (authMgr *authorizationMgr) byCode(ctx context.Context, code string) (autho
 	}
 
 	return &authReq, nil
+}
+
+func (authMgr *authorizationMgr) fromContext(ctx context.Context) authorization {
+	return authMgr.StorageManager.FromContext(ctx)
 }

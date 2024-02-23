@@ -13,7 +13,7 @@ type authorizationResponseHandler struct {
 	currentUserFromContext func(ctx context.Context) *model.User
 	authorizationMgr       interface {
 		updateUserID(ctx context.Context, userID uint) error
-		FromContext(ctx context.Context) authorization
+		fromContext(ctx context.Context) authorization
 	}
 }
 

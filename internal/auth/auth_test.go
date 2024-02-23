@@ -41,6 +41,10 @@ type mockAuthorization struct {
 	redirectURI   string
 }
 
+func (ma *mockAuthorization) Exists() bool {
+	return true
+}
+
 func (ma *mockAuthorization) ClientID() string {
 	return "123"
 }
@@ -88,7 +92,7 @@ func (auth *mockAuthorizationMgr) byCode(ctx context.Context, code string) (auth
 	return auth.currentAuthorization, nil
 }
 
-func (auth *mockAuthorizationMgr) FromContext(ctx context.Context) authorization {
+func (auth *mockAuthorizationMgr) fromContext(ctx context.Context) authorization {
 	return auth.currentAuthorization
 }
 
