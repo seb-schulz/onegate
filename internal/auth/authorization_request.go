@@ -10,11 +10,9 @@ import (
 )
 
 type authorizationRequestHandler struct {
-	clientByClientID clientByClientIDFn
-	authorizationMgr interface {
-		create(ctx context.Context, client client, state string, codeChallenge string) error
-	}
-	loginUrl url.URL
+	clientByClientID    clientByClientIDFn
+	createAuthorization func(ctx context.Context, client client, state string, codeChallenge string) error
+	loginUrl            url.URL
 }
 
 func (auth authorizationRequestHandler) checkResponseType(response_type string) error {
@@ -63,7 +61,7 @@ func (auth authorizationRequestHandler) ServeHTTP(w http.ResponseWriter, r *http
 		return
 	}
 
-	if auth.authorizationMgr.create(r.Context(), client, r.FormValue("state"), r.FormValue("code_challenge")); err != nil {
+	if auth.createAuthorization(r.Context(), client, r.FormValue("state"), r.FormValue("code_challenge")); err != nil {
 		http.Error(w, errors.Descriptions[errors.ErrInvalidRequest], errors.StatusCodes[errors.ErrInvalidRequest])
 		return
 	}

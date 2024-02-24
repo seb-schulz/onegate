@@ -29,9 +29,9 @@ func NewHandler() http.Handler {
 	route := chi.NewRouter()
 
 	authorizationRequestHandler := authorizationRequestHandler{
-		clientByClientID: clientByClientID,
-		loginUrl:         url.URL{Path: "/login"},
-		authorizationMgr: &defaultAuthorizationMgr,
+		clientByClientID:    clientByClientID,
+		loginUrl:            url.URL{Path: "/login"},
+		createAuthorization: createAuthorization,
 	}
 	route.Get("/auth", authorizationRequestHandler.ServeHTTP)
 

@@ -78,11 +78,6 @@ type mockAuthorizationMgr struct {
 	currentAuthorization *mockAuthorization
 }
 
-func (auth *mockAuthorizationMgr) create(ctx context.Context, client client, state, codeChallenge string) error {
-	auth.currentAuthorization = &mockAuthorization{state: state, codeChallenge: codeChallenge, redirectURI: client.RedirectURI()}
-	return nil
-}
-
 func (auth *mockAuthorizationMgr) updateUserID(ctx context.Context, userID uint) error {
 	auth.currentAuthorization.userID = 1
 	return nil
@@ -129,7 +124,10 @@ func TestAuthCodeFlow(t *testing.T) {
 	authorizationRequestHandler := &authorizationRequestHandler{
 		clientByClientID: clientByClientID,
 		loginUrl:         url.URL{Path: "/callback"},
-		authorizationMgr: mock,
+		createAuthorization: func(ctx context.Context, client client, state, codeChallenge string) error {
+			mock.currentAuthorization = &mockAuthorization{state: state, codeChallenge: codeChallenge, redirectURI: client.RedirectURI()}
+			return nil
+		},
 	}
 	route.Get("/auth", authorizationRequestHandler.ServeHTTP)
 

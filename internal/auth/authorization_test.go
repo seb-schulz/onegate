@@ -35,7 +35,7 @@ func TestAuthorizationMgrCreate(t *testing.T) {
 	}
 	tx.FirstOrCreate(&client)
 
-	if err := defaultAuthorizationMgr.create(ctx, &client, "state", "CodeChallenge"); err != nil {
+	if err := createAuthorization(ctx, &client, "state", "CodeChallenge"); err != nil {
 		t.Errorf("failed to create authorization: %v", err)
 	}
 

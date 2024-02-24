@@ -85,7 +85,7 @@ type authorizationMgr struct {
 	*sessionmgr.StorageManager[*Authorization]
 }
 
-func (authMgr *authorizationMgr) create(ctx context.Context, client client, state, codeChallenge string) error {
+func createAuthorization(ctx context.Context, client client, state, codeChallenge string) error {
 
 	if state == "" {
 		return fmt.Errorf("state must not be empty")
