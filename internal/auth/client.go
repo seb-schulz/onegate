@@ -36,7 +36,7 @@ type ClientSecretVerifier interface {
 }
 
 type client interface {
-	ClientID() string
+	ClientID() uuid.UUID
 	ClientSecretVerifier
 	redirecter
 }
@@ -53,8 +53,8 @@ type Client struct {
 	InternalRedirectURI string         `gorm:"column:redirect_uri;type:VARCHAR(255);not null"`
 }
 
-func (c *Client) ClientID() string {
-	return fmt.Sprint(c.ID)
+func (c *Client) ClientID() uuid.UUID {
+	return c.ID
 }
 
 func (c *Client) RedirectURI() string {
@@ -120,7 +120,7 @@ func CreateClient(ctx context.Context, clientSecretHash ClientSecretHasher, desc
 		return "", "", r.Error
 	}
 
-	return client.ClientID(), base64.URLEncoding.EncodeToString(randSecret[:]), nil
+	return fmt.Sprint(client.ClientID()), base64.URLEncoding.EncodeToString(randSecret[:]), nil
 }
 
 type pbkdf2Key struct {

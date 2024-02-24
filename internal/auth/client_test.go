@@ -33,7 +33,7 @@ func TestClientByClientID(t *testing.T) {
 		t.Errorf("cannot get client: %v", err)
 	}
 
-	if c.ClientID() != fmt.Sprint(id) {
+	if c.ClientID() != id {
 		t.Errorf("got client id %s instead of %s", c.ClientID(), id)
 	}
 

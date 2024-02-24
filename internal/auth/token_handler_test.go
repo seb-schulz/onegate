@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestTokenHandler_GetAndVerifyClient(t *testing.T) {
@@ -37,9 +39,9 @@ func TestTokenHandler_GetAndVerifyClient(t *testing.T) {
 				if clientID != "1" {
 					t.Errorf("expected client ID 1 but got: %#v", clientID)
 				}
-				return &mockClient{"1", "/"}, nil
+				return &mockClient{uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d"), "/"}, nil
 			}, func(c client) {
-				if got := c.ClientID(); got != "1" {
+				if got := c.ClientID(); got != uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d") {
 					t.Errorf("expected client ID 1 but got: %#v", got)
 				}
 			}, func(err error) {
@@ -52,9 +54,9 @@ func TestTokenHandler_GetAndVerifyClient(t *testing.T) {
 				if clientID != "1" {
 					t.Errorf("expected client ID 1 but got: %#v", clientID)
 				}
-				return &mockClient{"1", "/"}, nil
+				return &mockClient{uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d"), "/"}, nil
 			}, func(c client) {
-				if got := c.ClientID(); got != "1" {
+				if got := c.ClientID(); got != uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d") {
 					t.Errorf("expected client ID 1 but got: %#v", got)
 				}
 			}, func(err error) {
@@ -67,7 +69,7 @@ func TestTokenHandler_GetAndVerifyClient(t *testing.T) {
 				if clientID != "1" {
 					t.Errorf("expected client ID 1 but got: %#v", clientID)
 				}
-				return &mockClient{"1", "/"}, nil
+				return &mockClient{uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d"), "/"}, nil
 			}, func(c client) {
 				t.Error("should not be called due to error")
 			}, func(err error) {
@@ -80,9 +82,9 @@ func TestTokenHandler_GetAndVerifyClient(t *testing.T) {
 				if clientID != "1" {
 					t.Errorf("expected client ID 1 but got: %#v", clientID)
 				}
-				return &mockClient{"1", "/"}, nil
+				return &mockClient{uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d"), "/"}, nil
 			}, func(c client) {
-				if got := c.ClientID(); got != "1" {
+				if got := c.ClientID(); got != uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d") {
 					t.Errorf("expected client ID 1 but got: %#v", got)
 				}
 			}, func(err error) {

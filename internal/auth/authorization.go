@@ -14,7 +14,7 @@ import (
 
 type authorization interface {
 	Exists() bool
-	ClientID() string
+	ClientID() uuid.UUID
 	UserID() uint
 	State() string
 	Code() string
@@ -39,8 +39,8 @@ type Authorization struct {
 func (a *Authorization) Exists() bool {
 	return a != nil
 }
-func (a *Authorization) ClientID() string {
-	return fmt.Sprint(&a.InternalClientID)
+func (a *Authorization) ClientID() uuid.UUID {
+	return a.InternalClientID
 }
 
 func (a *Authorization) UserID() uint {
@@ -102,7 +102,7 @@ func createAuthorization(ctx context.Context, client client, state, codeChalleng
 	}
 
 	authReq := Authorization{
-		InternalClientID:      uuid.MustParse(client.ClientID()),
+		InternalClientID:      client.ClientID(),
 		InternalState:         state,
 		InternalCodeChallenge: codeChallenge,
 		InternalCode:          code,

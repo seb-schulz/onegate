@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"gorm.io/gorm"
@@ -17,9 +18,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type mockClient struct{ c, r string }
+type mockClient struct {
+	c uuid.UUID
+	r string
+}
 
-func (mc *mockClient) ClientID() string {
+func (mc *mockClient) ClientID() uuid.UUID {
 	return mc.c
 }
 
@@ -45,8 +49,8 @@ func (ma *mockAuthorization) Exists() bool {
 	return true
 }
 
-func (ma *mockAuthorization) ClientID() string {
-	return "123"
+func (ma *mockAuthorization) ClientID() uuid.UUID {
+	return uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d")
 }
 
 func (ma *mockAuthorization) UserID() uint {
@@ -70,7 +74,7 @@ func (ma *mockAuthorization) RedirectURI() string {
 }
 
 func (ma *mockAuthorization) IDStr() string {
-	return ma.ClientID()
+	return fmt.Sprint(ma.ClientID())
 }
 
 type mockAuthorizationMgr struct {
@@ -113,7 +117,10 @@ func TestAuthCodeFlow(t *testing.T) {
 	})
 
 	clientByClientID := func(ctx context.Context, clientID string) (client, error) {
-		return &mockClient{"123", client_ts.URL}, nil
+		return &mockClient{
+			uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d"),
+			client_ts.URL,
+		}, nil
 	}
 
 	route := chi.NewRouter()
