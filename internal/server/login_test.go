@@ -38,7 +38,7 @@ func TestRedirectWhenLoggedOut(t *testing.T) {
 		}},
 	} {
 		defaultUserFromContext = tc.fromCtx
-		handler := redirectWhenLoggedOut(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := redirectWhenLoggedIn(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintln(w, "Ok")
 		}))
 

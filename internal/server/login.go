@@ -69,7 +69,7 @@ func (m loginClaims) UserID() (uint, error) {
 	return uID, nil
 }
 
-func redirectWhenLoggedOut(next http.Handler) http.Handler {
+func redirectWhenLoggedIn(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := defaultUserFromContext(r.Context())
 		if user != nil {
@@ -84,7 +84,7 @@ func redirectWhenLoggedOut(next http.Handler) http.Handler {
 func newLoginRoute(lc LoginConfig) http.Handler {
 	route := chi.NewRouter()
 
-	route.Use(redirectWhenLoggedOut)
+	route.Use(redirectWhenLoggedIn)
 	route.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ui.AddTemplateValue(r.Context(), "startLogin", false)
