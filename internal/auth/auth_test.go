@@ -83,10 +83,6 @@ func (auth *mockAuthorizationMgr) updateUserID(ctx context.Context, userID uint)
 	return nil
 }
 
-func (auth *mockAuthorizationMgr) byCode(ctx context.Context, code string) (authorization, error) {
-	return auth.currentAuthorization, nil
-}
-
 func (auth *mockAuthorizationMgr) fromContext(ctx context.Context) authorization {
 	return auth.currentAuthorization
 }
@@ -139,7 +135,12 @@ func TestAuthCodeFlow(t *testing.T) {
 	}
 	route.With(mock.Handler).Get("/callback", authorizationResponseHandler.ServeHTTP)
 
-	tokenHandler := &tokenHandler{clientByClientID: clientByClientID, authorizationMgr: mock}
+	tokenHandler := &tokenHandler{
+		clientByClientID: clientByClientID,
+		authorizationByCode: func(ctx context.Context, code string) (authorization, error) {
+			return mock.currentAuthorization, nil
+		},
+	}
 	route.Post("/token", tokenHandler.ServeHTTP)
 
 	ts := httptest.NewServer(route)

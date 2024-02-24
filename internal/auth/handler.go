@@ -38,8 +38,8 @@ func NewHandler() http.Handler {
 	route.With(usermgr.Middleware).Get("/callback", defaultAuthorizationResponseHandler.ServeHTTP)
 
 	tokenHandler := &tokenHandler{
-		clientByClientID: clientByClientID,
-		authorizationMgr: &defaultAuthorizationMgr,
+		clientByClientID:    clientByClientID,
+		authorizationByCode: authorizationByCode,
 	}
 	route.Post("/token", tokenHandler.ServeHTTP)
 

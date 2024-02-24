@@ -20,10 +20,8 @@ type AccessTokenResponds struct {
 }
 
 type tokenHandler struct {
-	clientByClientID clientByClientIDFn
-	authorizationMgr interface {
-		byCode(ctx context.Context, code string) (authorization, error)
-	}
+	clientByClientID    clientByClientIDFn
+	authorizationByCode func(ctx context.Context, code string) (authorization, error)
 	ClientSecretVerifier
 }
 
@@ -40,7 +38,7 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authReq, err := th.authorizationMgr.byCode(r.Context(), r.FormValue("code"))
+	authReq, err := th.authorizationByCode(r.Context(), r.FormValue("code"))
 	if err != nil {
 		log.Printf("authorization not found: %v", err)
 		http.Error(w, "not implemented yet", http.StatusNotImplemented)

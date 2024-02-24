@@ -118,7 +118,7 @@ func TestAuthorizationMgrUpdateUserID(t *testing.T) {
 
 }
 
-func TestAuthorizationMgrByCode(t *testing.T) {
+func TestAuthorizationByCode(t *testing.T) {
 	gen := rand.New(rand.NewSource(int64(1)))
 
 	readRand := func(size uint) []byte {
@@ -152,19 +152,19 @@ func TestAuthorizationMgrByCode(t *testing.T) {
 		t.Errorf("cannot create authorization: %v", r.Error)
 	}
 
-	_, err = defaultAuthorizationMgr.byCode(ctx, base64.RawStdEncoding.EncodeToString([]byte("non existing error")))
+	_, err = authorizationByCode(ctx, base64.RawStdEncoding.EncodeToString([]byte("non existing error")))
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Errorf("failed but with unexpected error msg: %v", err)
 	} else if err == nil {
 		t.Errorf("expected error but found authorization")
 	}
 
-	_, err = defaultAuthorizationMgr.byCode(ctx, "expected decoding error")
+	_, err = authorizationByCode(ctx, "expected decoding error")
 	if err == nil {
 		t.Error("expected decoding error")
 	}
 
-	fetchedAuth, err := defaultAuthorizationMgr.byCode(ctx, base64.RawURLEncoding.EncodeToString(code))
+	fetchedAuth, err := authorizationByCode(ctx, base64.RawURLEncoding.EncodeToString(code))
 	if err != nil {
 		t.Errorf("failed to get authorization by code: %v", err)
 	}

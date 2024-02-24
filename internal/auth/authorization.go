@@ -135,7 +135,7 @@ func (authMgr *authorizationMgr) updateUserID(ctx context.Context, userID uint) 
 	return nil
 }
 
-func (authMgr *authorizationMgr) byCode(ctx context.Context, code string) (authorization, error) {
+func authorizationByCode(ctx context.Context, code string) (authorization, error) {
 	decCode, err := base64.RawStdEncoding.DecodeString(code)
 	if err != nil {
 		return nil, err
