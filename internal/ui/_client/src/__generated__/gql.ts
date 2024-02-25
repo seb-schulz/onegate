@@ -13,10 +13,10 @@ import { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-node/
  * Therefore it is highly recommended to use the babel or swc plugin for production.
  */
 const documents = {
-    "\nmutation beginLogin {\n  beginLogin\n}\n": types.BeginLoginDocument,
-    "\nmutation validateLogin($body: CredentialRequestResponse!) {\n    validateLogin(body: $body)\n}\n": types.ValidateLoginDocument,
     "\nmutation createUser($name: String!) {\n  createUser(name: $name)\n}\n": types.CreateUserDocument,
     "\nmutation addCredential($body: CredentialCreationResponse!) {\n    addCredential(body: $body)\n}\n": types.AddCredentialDocument,
+    "\nmutation beginLogin {\n  beginLogin\n}\n": types.BeginLoginDocument,
+    "\nmutation validateLogin($body: CredentialRequestResponse!) {\n    validateLogin(body: $body) {\n        redirectURL\n    }\n}\n": types.ValidateLoginDocument,
     "\nquery credentials {\n  credentials {\n    id\n    description\n    createdAt\n    updatedAt\n    lastLogin\n  }\n}": types.CredentialsDocument,
     "\nmutation updateCredential($id: ID!, $description: String) {\n  updateCredential(id: $id, description: $description) {\n    id\n  }\n}": types.UpdateCredentialDocument,
     "\nmutation initCredential {\n    initCredential\n}\n": types.InitCredentialDocument,
@@ -44,19 +44,19 @@ export function gql(source: string): unknown;
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function gql(source: "\nmutation beginLogin {\n  beginLogin\n}\n"): (typeof documents)["\nmutation beginLogin {\n  beginLogin\n}\n"];
-/**
- * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
- */
-export function gql(source: "\nmutation validateLogin($body: CredentialRequestResponse!) {\n    validateLogin(body: $body)\n}\n"): (typeof documents)["\nmutation validateLogin($body: CredentialRequestResponse!) {\n    validateLogin(body: $body)\n}\n"];
-/**
- * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
- */
 export function gql(source: "\nmutation createUser($name: String!) {\n  createUser(name: $name)\n}\n"): (typeof documents)["\nmutation createUser($name: String!) {\n  createUser(name: $name)\n}\n"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function gql(source: "\nmutation addCredential($body: CredentialCreationResponse!) {\n    addCredential(body: $body)\n}\n"): (typeof documents)["\nmutation addCredential($body: CredentialCreationResponse!) {\n    addCredential(body: $body)\n}\n"];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "\nmutation beginLogin {\n  beginLogin\n}\n"): (typeof documents)["\nmutation beginLogin {\n  beginLogin\n}\n"];
+/**
+ * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function gql(source: "\nmutation validateLogin($body: CredentialRequestResponse!) {\n    validateLogin(body: $body) {\n        redirectURL\n    }\n}\n"): (typeof documents)["\nmutation validateLogin($body: CredentialRequestResponse!) {\n    validateLogin(body: $body) {\n        redirectURL\n    }\n}\n"];
 /**
  * The gql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

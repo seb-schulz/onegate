@@ -15,8 +15,13 @@ function CentralCard() {
     const { t } = useTranslation();
     const [error, setError] = React.useState("")
 
-    const onSuccess = () => {
-        window.location.href = "/";
+    const onSuccess = (redirectURL?: string) => {
+        console.log(redirectURL)
+        if (!redirectURL) {
+            window.location.href = "/";
+        } else {
+            window.location.href = redirectURL;
+        }
     }
 
     const login = (

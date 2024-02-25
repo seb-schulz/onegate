@@ -17,3 +17,7 @@ type RelyingParty struct {
 	Name string `json:"name"`
 	ID   string `json:"id"`
 }
+
+type SuccessfulLogin struct {
+	RedirectURL string `json:"redirectURL"`
+}

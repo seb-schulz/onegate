@@ -13,7 +13,9 @@ mutation beginLogin {
 
 const VALIDATE_LOGIN_QGL = gql(`
 mutation validateLogin($body: CredentialRequestResponse!) {
-    validateLogin(body: $body)
+    validateLogin(body: $body) {
+        redirectURL
+    }
 }
 `);
 
@@ -24,11 +26,11 @@ async function handleLogin({ beginLogin, validateLogin, onSuccess, onError }: {
     validateLogin: urql.UseMutationExecute<graphql.ValidateLoginMutation, graphql.Exact<{
         body: any;
     }>>
-    onSuccess?: () => void
+    onSuccess?: (redirectURL?: string) => void
     onError?: (errMsg: string) => void
 }) {
     if (onSuccess === undefined) {
-        onSuccess = () => { };
+        onSuccess = (redirectURL?: string) => { };
     }
 
     if (onError === undefined) {
@@ -50,8 +52,8 @@ async function handleLogin({ beginLogin, validateLogin, onSuccess, onError }: {
             return;
         }
 
-        if (verificationResp.data.validateLogin) {
-            onSuccess();
+        if (!!verificationResp.data.validateLogin) {
+            onSuccess(verificationResp.data.validateLogin?.redirectURL);
         }
     } catch (error) {
         onError((error as urql.CombinedError).message);
@@ -59,7 +61,7 @@ async function handleLogin({ beginLogin, validateLogin, onSuccess, onError }: {
 }
 
 export function LoginSpinner({ onError, onSuccess }: {
-    onSuccess?: () => void
+    onSuccess?: (redirectURL?: string) => void
     onError?: (errMsg: string) => void
 }) {
     const executed = useRef(false)
@@ -84,7 +86,7 @@ export function LoginSpinner({ onError, onSuccess }: {
 }
 
 export function LoginButton({ onError, onSuccess, children }: {
-    onSuccess?: () => void
+    onSuccess?: (redirectURL?: string) => void
     onError?: (errMsg: string) => void
     children: string | JSX.Element | JSX.Element[]
 }) {
@@ -92,8 +94,8 @@ export function LoginButton({ onError, onSuccess, children }: {
     const [{ fetching: fetchingValidateLogin }, validateLogin] = urql.useMutation(VALIDATE_LOGIN_QGL);
     const [spinner, setSpinner] = useState(false);
 
-    const onHookedSuccess = () => {
-        if (!!onSuccess) onSuccess();
+    const onHookedSuccess = (redirectURL?: string) => {
+        if (!!onSuccess) onSuccess(redirectURL);
         setSpinner(false)
     }
 

@@ -39,6 +39,10 @@ type Session {
   isCurrent: Boolean!
 }
 
+type SuccessfulLogin {
+  redirectURL: String!
+}
+
 type Query {
   me: User
   credentials: [Credential]
@@ -53,6 +57,6 @@ type Mutation {
  updateCredential(id: ID!, description: String): Credential!
  removeCredential(id: ID!): Boolean!
  beginLogin: CredentialAssertion!
- validateLogin(body: CredentialRequestResponse!): Boolean!
+ validateLogin(body: CredentialRequestResponse!): SuccessfulLogin
  removeSession(id: ID!): Boolean!
 }

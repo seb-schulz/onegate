@@ -96,6 +96,10 @@ type ComplexityRoot struct {
 		UpdatedAt func(childComplexity int) int
 	}
 
+	SuccessfulLogin struct {
+		RedirectURL func(childComplexity int) int
+	}
+
 	User struct {
 		DisplayName func(childComplexity int) int
 		Name        func(childComplexity int) int
@@ -113,7 +117,7 @@ type MutationResolver interface {
 	UpdateCredential(ctx context.Context, id string, description *string) (*model.Credential, error)
 	RemoveCredential(ctx context.Context, id string) (bool, error)
 	BeginLogin(ctx context.Context) (*protocol.CredentialAssertion, error)
-	ValidateLogin(ctx context.Context, body string) (bool, error)
+	ValidateLogin(ctx context.Context, body string) (*model1.SuccessfulLogin, error)
 	RemoveSession(ctx context.Context, id string) (bool, error)
 }
 type QueryResolver interface {
@@ -360,6 +364,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Session.UpdatedAt(childComplexity), true
+
+	case "SuccessfulLogin.redirectURL":
+		if e.complexity.SuccessfulLogin.RedirectURL == nil {
+			break
+		}
+
+		return e.complexity.SuccessfulLogin.RedirectURL(childComplexity), true
 
 	case "User.displayName":
 		if e.complexity.User.DisplayName == nil {
@@ -1293,14 +1304,11 @@ func (ec *executionContext) _Mutation_validateLogin(ctx context.Context, field g
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(bool)
+	res := resTmp.(*model1.SuccessfulLogin)
 	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalOSuccessfulLogin2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋgraphᚋmodelᚐSuccessfulLogin(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_validateLogin(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1310,7 +1318,11 @@ func (ec *executionContext) fieldContext_Mutation_validateLogin(ctx context.Cont
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
+			switch field.Name {
+			case "redirectURL":
+				return ec.fieldContext_SuccessfulLogin_redirectURL(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SuccessfulLogin", field.Name)
 		},
 	}
 	defer func() {
@@ -2055,6 +2067,50 @@ func (ec *executionContext) fieldContext_Session_isCurrent(ctx context.Context, 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SuccessfulLogin_redirectURL(ctx context.Context, field graphql.CollectedField, obj *model1.SuccessfulLogin) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SuccessfulLogin_redirectURL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RedirectURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SuccessfulLogin_redirectURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SuccessfulLogin",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4088,9 +4144,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_validateLogin(ctx, field)
 			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "removeSession":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_removeSession(ctx, field)
@@ -4414,6 +4467,45 @@ func (ec *executionContext) _Session(ctx context.Context, sel ast.SelectionSet, 
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var successfulLoginImplementors = []string{"SuccessfulLogin"}
+
+func (ec *executionContext) _SuccessfulLogin(ctx context.Context, sel ast.SelectionSet, obj *model1.SuccessfulLogin) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, successfulLoginImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SuccessfulLogin")
+		case "redirectURL":
+			out.Values[i] = ec._SuccessfulLogin_redirectURL(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5401,6 +5493,13 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	}
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOSuccessfulLogin2ᚖgithubᚗcomᚋsebᚑschulzᚋonegateᚋgraphᚋmodelᚐSuccessfulLogin(ctx context.Context, sel ast.SelectionSet, v *model1.SuccessfulLogin) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SuccessfulLogin(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
