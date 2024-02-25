@@ -13,7 +13,6 @@ import (
 )
 
 type authorization interface {
-	Exists() bool
 	ClientID() uuid.UUID
 	UserID() uint
 	State() string
@@ -36,9 +35,6 @@ type Authorization struct {
 	SessionID             uuid.UUID   `gorm:"column:session_id;type:VARCHAR(191);not null"`
 }
 
-func (a *Authorization) Exists() bool {
-	return a != nil
-}
 func (a *Authorization) ClientID() uuid.UUID {
 	return a.InternalClientID
 }
@@ -67,22 +63,6 @@ func (a *Authorization) RedirectURI() string {
 
 func (a *Authorization) IDStr() string {
 	return fmt.Sprint(a.ID)
-}
-
-func firstAuthorization(ctx context.Context) (*Authorization, error) {
-	sessionID := sessionmgr.FromContext(ctx).UUID
-	authReq := Authorization{}
-	r := database.FromContext(ctx).Preload("Client").Where("session_id = ?", sessionID).First(&authReq)
-
-	if r.Error != nil {
-		return nil, fmt.Errorf("cannot update authorization: %v", r.Error)
-	}
-
-	return &authReq, nil
-}
-
-type authorizationMgr struct {
-	*sessionmgr.StorageManager[*Authorization]
 }
 
 func createAuthorization(ctx context.Context, client client, state, codeChallenge string) error {
@@ -117,13 +97,25 @@ func createAuthorization(ctx context.Context, client client, state, codeChalleng
 	return nil
 }
 
-func (authMgr *authorizationMgr) updateUserID(ctx context.Context, userID uint) error {
-	authReq := authMgr.StorageManager.FromContext(ctx)
-	if authReq == nil {
-		return fmt.Errorf("authorization not found")
+func firstAuthorization(ctx context.Context) (*Authorization, error) {
+	sessionID := sessionmgr.FromContext(ctx).UUID
+	authReq := Authorization{}
+	r := database.FromContext(ctx).Preload("Client").Where("session_id = ?", sessionID).First(&authReq)
+
+	if r.Error != nil {
+		return nil, fmt.Errorf("cannot update authorization: %v", r.Error)
 	}
 
-	if authReq.UserID() > 0 {
+	return &authReq, nil
+}
+
+func assignUserToAuthorization(ctx context.Context, userID uint) error {
+	authReq, err := firstAuthorization(ctx)
+	if err != nil {
+		return err
+	}
+
+	if authReq.InternalUserID != nil {
 		return fmt.Errorf("cannot update user ID twice")
 	}
 
@@ -149,8 +141,4 @@ func authorizationByCode(ctx context.Context, code string) (authorization, error
 	}
 
 	return &authReq, nil
-}
-
-func (authMgr *authorizationMgr) fromContext(ctx context.Context) authorization {
-	return authMgr.StorageManager.FromContext(ctx)
 }

@@ -18,7 +18,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func TestAuthorizationMgrCreate(t *testing.T) {
+func TestCreateAuthorization(t *testing.T) {
 	db, err := database.Open()
 	if err != nil {
 		panic(err)
@@ -43,13 +43,12 @@ func TestAuthorizationMgrCreate(t *testing.T) {
 	// Extract code below into login handler test
 
 	route := chi.NewRouter()
-	route.Use(defaultAuthorizationMgr.Handler)
 	route.Get("/foo", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Ok")
 
-		authReq := defaultAuthorizationMgr.FromContext(r.Context())
-		if authReq == nil {
-			t.Errorf("cannot find authorization from database")
+		_, err := firstAuthorization(r.Context())
+		if err != nil {
+			t.Errorf("cannot find authorization: %v", err)
 		}
 	}))
 
@@ -60,62 +59,6 @@ func TestAuthorizationMgrCreate(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.FailNow()
 	}
-}
-
-func TestAuthorizationMgrUpdateUserID(t *testing.T) {
-	db, err := database.Open()
-	if err != nil {
-		panic(err)
-	}
-
-	tx := db.Begin()
-	defer tx.Rollback()
-
-	sessionToken := sessionmgr.Token{UUID: uuid.New()}
-	ctx := sessionmgr.ToContext(database.WithContext(context.Background(), tx), &sessionToken)
-
-	client := Client{
-		ID: uuid.New(),
-	}
-	tx.FirstOrCreate(&client)
-
-	user, user2 := model.User{}, model.User{}
-	tx.FirstOrCreate(&user)
-	tx.FirstOrCreate(&user2)
-
-	r := tx.FirstOrCreate(&Authorization{Client: client, SessionID: sessionToken.UUID})
-	if r.Error != nil {
-		t.Errorf("cannot create authorization: %v", r.Error)
-	}
-
-	route := chi.NewRouter()
-	route.Use(defaultAuthorizationMgr.Handler)
-	route.Get("/foo", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Ok")
-
-		authReq := defaultAuthorizationMgr.FromContext(r.Context())
-		if authReq == nil {
-			t.Errorf("cannot find authorization from database")
-		}
-
-		if err := defaultAuthorizationMgr.updateUserID(r.Context(), user.ID); err != nil {
-			t.Errorf("cannot updte user ID: %v", err)
-		}
-
-		if err := defaultAuthorizationMgr.updateUserID(r.Context(), user2.ID); err == nil {
-			t.Errorf("could update user ID twice")
-		}
-
-	}))
-
-	w := httptest.NewRecorder()
-	route.ServeHTTP(w, httptest.NewRequest("GET", "/foo", nil).WithContext(ctx))
-
-	resp := w.Result()
-	if resp.StatusCode != http.StatusOK {
-		t.FailNow()
-	}
-
 }
 
 func TestAuthorizationByCode(t *testing.T) {

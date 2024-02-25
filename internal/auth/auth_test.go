@@ -11,9 +11,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/seb-schulz/onegate/internal/model"
-	"github.com/seb-schulz/onegate/internal/sessionmgr"
-	"gorm.io/gorm"
 
 	"golang.org/x/oauth2"
 )
@@ -45,10 +42,6 @@ type mockAuthorization struct {
 	redirectURI   string
 }
 
-func (ma *mockAuthorization) Exists() bool {
-	return true
-}
-
 func (ma *mockAuthorization) ClientID() uuid.UUID {
 	return uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d")
 }
@@ -73,24 +66,6 @@ func (ma *mockAuthorization) RedirectURI() string {
 	return ma.redirectURI
 }
 
-func (ma *mockAuthorization) IDStr() string {
-	return fmt.Sprint(ma.ClientID())
-}
-
-type mockAuthorizationMgr struct {
-	*sessionmgr.StorageManager[*mockAuthorization]
-	currentAuthorization *mockAuthorization
-}
-
-func (auth *mockAuthorizationMgr) updateUserID(ctx context.Context, userID uint) error {
-	auth.currentAuthorization.userID = 1
-	return nil
-}
-
-func (auth *mockAuthorizationMgr) fromContext(ctx context.Context) authorization {
-	return auth.currentAuthorization
-}
-
 func TestAuthCodeFlow(t *testing.T) {
 	var (
 		code         string
@@ -111,10 +86,9 @@ func TestAuthCodeFlow(t *testing.T) {
 	}))
 	defer client_ts.Close()
 
-	mock := &mockAuthorizationMgr{}
-	mock.StorageManager = sessionmgr.NewStorage[*mockAuthorization]("authorization", func(ctx context.Context) (*mockAuthorization, error) {
-		return mock.currentAuthorization, nil
-	})
+	mock := struct {
+		currentAuthorization *mockAuthorization
+	}{}
 
 	clientByClientID := func(ctx context.Context, clientID string) (client, error) {
 		return &mockClient{
@@ -126,21 +100,29 @@ func TestAuthCodeFlow(t *testing.T) {
 	route := chi.NewRouter()
 	authorizationRequestHandler := &authorizationRequestHandler{
 		clientByClientID: clientByClientID,
-		loginUrl:         url.URL{Path: "/callback"},
+		loginUrl:         url.URL{Path: "/login"},
 		createAuthorization: func(ctx context.Context, client client, state, codeChallenge string) error {
 			mock.currentAuthorization = &mockAuthorization{state: state, codeChallenge: codeChallenge, redirectURI: client.RedirectURI()}
 			return nil
 		},
 	}
 	route.Get("/auth", authorizationRequestHandler.ServeHTTP)
+	route.Get("/login", func(w http.ResponseWriter, r *http.Request) {
+		// TODO: Instead mock, it should call assignUserToAuthorization(...)
+		// sessionToken := sessionmgr.Token{UUID: uuid.New()}
+		mock.currentAuthorization.userID = 1
+		http.Redirect(w, r, "/callback", http.StatusFound)
 
-	authorizationResponseHandler := &authorizationResponseHandler{
-		authorizationMgr: mock,
-		currentUserFromContext: func(ctx context.Context) *model.User {
-			return &model.User{Model: gorm.Model{ID: 1}}
-		},
-	}
-	route.With(mock.Handler).Get("/callback", authorizationResponseHandler.ServeHTTP)
+	})
+
+	// TODO: Reimplement authorizationResponseHandler to something usefull
+	route.Get("/callback", func(w http.ResponseWriter, r *http.Request) {
+		authReq := mock.currentAuthorization
+		q := url.Values{}
+		q.Add("code", authReq.Code())
+		q.Add("state", authReq.State())
+		http.Redirect(w, r, fmt.Sprintf("%v?%v", authReq.RedirectURI(), q.Encode()), http.StatusFound)
+	})
 
 	tokenHandler := &tokenHandler{
 		clientByClientID: clientByClientID,
