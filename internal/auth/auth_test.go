@@ -115,14 +115,12 @@ func TestAuthCodeFlow(t *testing.T) {
 
 	})
 
-	// TODO: Reimplement authorizationResponseHandler to something usefull
-	route.Get("/callback", func(w http.ResponseWriter, r *http.Request) {
-		authReq := mock.currentAuthorization
-		q := url.Values{}
-		q.Add("code", authReq.Code())
-		q.Add("state", authReq.State())
-		http.Redirect(w, r, fmt.Sprintf("%v?%v", authReq.RedirectURI(), q.Encode()), http.StatusFound)
-	})
+	callbackRedirectHandler := &callbackRedirectHandler{
+		currentAuthorization: func(ctx context.Context) (authorization, error) {
+			return mock.currentAuthorization, nil
+		},
+	}
+	route.Get("/callback", callbackRedirectHandler.ServeHTTP)
 
 	tokenHandler := &tokenHandler{
 		clientByClientID: clientByClientID,

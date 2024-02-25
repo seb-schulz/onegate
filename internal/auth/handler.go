@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 
@@ -17,8 +18,12 @@ func NewHandler() http.Handler {
 	}
 	route.Get("/auth", authorizationRequestHandler.ServeHTTP)
 
-	// TODO: Replace will callback handler
-	// route.With(usermgr.Middleware).Get("/callback", defaultAuthorizationResponseHandler.ServeHTTP)
+	callbackRedirectHandler := &callbackRedirectHandler{
+		currentAuthorization: func(ctx context.Context) (authorization, error) {
+			return firstAuthorization(ctx)
+		},
+	}
+	route.Get("/callback", callbackRedirectHandler.ServeHTTP)
 
 	tokenHandler := &tokenHandler{
 		clientByClientID:    clientByClientID,
