@@ -36,34 +36,16 @@ func (mc *mockClient) RedirectURI() string {
 }
 
 type mockAuthorization struct {
-	userID        uint
-	state         string
-	codeChallenge string
-	redirectURI   string
-}
-
-func (ma *mockAuthorization) ClientID() uuid.UUID {
-	return uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d")
-}
-
-func (ma *mockAuthorization) UserID() uint {
-	return ma.userID
-}
-
-func (ma *mockAuthorization) State() string {
-	return ma.state
+	Authorization
+	client mockClient
 }
 
 func (ma *mockAuthorization) Code() string {
 	return "mno"
 }
 
-func (ma *mockAuthorization) CodeChallenge() string {
-	return ma.codeChallenge
-}
-
 func (ma *mockAuthorization) RedirectURI() string {
-	return ma.redirectURI
+	return ma.client.RedirectURI()
 }
 
 func TestAuthCodeFlow(t *testing.T) {
@@ -86,15 +68,17 @@ func TestAuthCodeFlow(t *testing.T) {
 	}))
 	defer client_ts.Close()
 
+	mockClient := mockClient{
+		uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d"),
+		client_ts.URL,
+	}
+
 	mock := struct {
 		currentAuthorization *mockAuthorization
 	}{}
 
 	clientByClientID := func(ctx context.Context, clientID string) (client, error) {
-		return &mockClient{
-			uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d"),
-			client_ts.URL,
-		}, nil
+		return &mockClient, nil
 	}
 
 	route := chi.NewRouter()
@@ -102,7 +86,14 @@ func TestAuthCodeFlow(t *testing.T) {
 		clientByClientID: clientByClientID,
 		loginUrl:         url.URL{Path: "/login"},
 		createAuthorization: func(ctx context.Context, client client, state, codeChallenge string) error {
-			mock.currentAuthorization = &mockAuthorization{state: state, codeChallenge: codeChallenge, redirectURI: client.RedirectURI()}
+			mock.currentAuthorization = &mockAuthorization{
+				Authorization{
+					InternalState:         state,
+					InternalCodeChallenge: codeChallenge,
+					InternalClientID:      client.ClientID(),
+				},
+				mockClient,
+			}
 			return nil
 		},
 	}
@@ -110,7 +101,9 @@ func TestAuthCodeFlow(t *testing.T) {
 	route.Get("/login", func(w http.ResponseWriter, r *http.Request) {
 		// TODO: Instead mock, it should call assignUserToAuthorization(...)
 		// sessionToken := sessionmgr.Token{UUID: uuid.New()}
-		mock.currentAuthorization.userID = 1
+		uID := uint(1)
+		mock.currentAuthorization.InternalUserID = &uID
+		// mock.currentAuthorization.User = &model.User{Model: gorm.Model{ID: 1}}
 		http.Redirect(w, r, "/callback", http.StatusFound)
 
 	})
