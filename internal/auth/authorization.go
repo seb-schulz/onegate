@@ -19,6 +19,7 @@ type authorization interface {
 	Code() string
 	CodeChallenge() string
 	redirecter
+	SetUserID(context.Context, uint) error
 }
 
 type Authorization struct {
@@ -57,12 +58,22 @@ func (a *Authorization) Code() string {
 func (a *Authorization) CodeChallenge() string {
 	return a.InternalCodeChallenge
 }
+
 func (a *Authorization) RedirectURI() string {
 	return a.Client.RedirectURI()
 }
 
 func (a *Authorization) IDStr() string {
 	return fmt.Sprint(a.ID)
+}
+
+func (a *Authorization) SetUserID(ctx context.Context, userID uint) error {
+	r := database.FromContext(ctx).Model(a).Update("user_id", userID)
+	if r.Error != nil {
+		return fmt.Errorf("cannot update authorization: %w", r.Error)
+	}
+
+	return nil
 }
 
 func createAuthorization(ctx context.Context, client client, state, codeChallenge string) error {

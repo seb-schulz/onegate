@@ -11,6 +11,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/seb-schulz/onegate/internal/model"
+	"gorm.io/gorm"
 
 	"golang.org/x/oauth2"
 )
@@ -38,6 +40,7 @@ func (mc *mockClient) RedirectURI() string {
 type mockAuthorization struct {
 	Authorization
 	client mockClient
+	userID *uint
 }
 
 func (ma *mockAuthorization) Code() string {
@@ -46,6 +49,11 @@ func (ma *mockAuthorization) Code() string {
 
 func (ma *mockAuthorization) RedirectURI() string {
 	return ma.client.RedirectURI()
+}
+
+func (ma *mockAuthorization) SetUserID(ctx context.Context, userID uint) error {
+	ma.userID = &userID
+	return nil
 }
 
 func TestAuthCodeFlow(t *testing.T) {
@@ -73,6 +81,10 @@ func TestAuthCodeFlow(t *testing.T) {
 		client_ts.URL,
 	}
 
+	mockUser := model.User{
+		Model: gorm.Model{ID: 1},
+	}
+
 	mock := struct {
 		currentAuthorization *mockAuthorization
 	}{}
@@ -93,6 +105,7 @@ func TestAuthCodeFlow(t *testing.T) {
 					InternalClientID:      client.ClientID(),
 				},
 				mockClient,
+				nil,
 			}
 			return nil
 		},
@@ -111,6 +124,9 @@ func TestAuthCodeFlow(t *testing.T) {
 	callbackRedirectHandler := &callbackRedirectHandler{
 		currentAuthorization: func(ctx context.Context) (authorization, error) {
 			return mock.currentAuthorization, nil
+		},
+		currentUser: func(ctx context.Context) *model.User {
+			return &mockUser
 		},
 	}
 	route.Get("/callback", callbackRedirectHandler.ServeHTTP)
@@ -162,6 +178,12 @@ func TestAuthCodeFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(tok)
+
+	if mock.currentAuthorization.userID == nil {
+		t.Errorf("user ID was not set")
+	} else if *mock.currentAuthorization.userID != mockUser.ID {
+		t.Errorf("expected user ID %v but got %v", mockUser.ID, *mock.currentAuthorization.userID)
+	}
 	// log.Println(tok.Extra("id_token"))
 
 	// client := conf.Client(ctx, tok)
