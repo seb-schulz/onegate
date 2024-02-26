@@ -120,24 +120,6 @@ func firstAuthorization(ctx context.Context) (*Authorization, error) {
 	return &authReq, nil
 }
 
-func assignUserToAuthorization(ctx context.Context, userID uint) error {
-	authReq, err := firstAuthorization(ctx)
-	if err != nil {
-		return err
-	}
-
-	if authReq.InternalUserID != nil {
-		return fmt.Errorf("cannot update user ID twice")
-	}
-
-	r := database.FromContext(ctx).Model(authReq).Update("user_id", userID)
-	if r.Error != nil {
-		return fmt.Errorf("cannot update authorization: %v", r.Error)
-	}
-
-	return nil
-}
-
 func authorizationByCode(ctx context.Context, code string) (authorization, error) {
 	decCode, err := base64.RawStdEncoding.DecodeString(code)
 	if err != nil {
