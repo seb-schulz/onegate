@@ -15,6 +15,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/seb-schulz/onegate/graph/model"
+	"github.com/seb-schulz/onegate/internal/auth"
 	dbmodel "github.com/seb-schulz/onegate/internal/model"
 	"github.com/seb-schulz/onegate/internal/usermgr"
 	"gorm.io/gorm"
@@ -238,6 +239,11 @@ func (r *mutationResolver) ValidateLogin(ctx context.Context, body string) (*mod
 		return nil
 	}); err != nil {
 		panic(err)
+	}
+
+	auth, _ := auth.FirstAuthorization(ctx)
+	if auth != nil {
+		return &model.SuccessfulLogin{RedirectURL: "/auth/callback"}, nil
 	}
 
 	return &model.SuccessfulLogin{RedirectURL: "/"}, nil

@@ -108,7 +108,7 @@ func createAuthorization(ctx context.Context, client client, state, codeChalleng
 	return nil
 }
 
-func firstAuthorization(ctx context.Context) (*Authorization, error) {
+func FirstAuthorization(ctx context.Context) (*Authorization, error) {
 	sessionID := sessionmgr.FromContext(ctx).UUID
 	authReq := Authorization{}
 	r := database.FromContext(ctx).Preload("Client").Where("session_id = ?", sessionID).First(&authReq)
@@ -121,7 +121,7 @@ func firstAuthorization(ctx context.Context) (*Authorization, error) {
 }
 
 func authorizationByCode(ctx context.Context, code string) (authorization, error) {
-	decCode, err := base64.RawStdEncoding.DecodeString(code)
+	decCode, err := base64.URLEncoding.DecodeString(code)
 	if err != nil {
 		return nil, err
 	}

@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/seb-schulz/onegate/internal/usermgr"
 )
 
 func NewHandler() http.Handler {
@@ -22,10 +23,11 @@ func NewHandler() http.Handler {
 
 	callbackRedirectHandler := &callbackRedirectHandler{
 		currentAuthorization: func(ctx context.Context) (authorization, error) {
-			return firstAuthorization(ctx)
+			return FirstAuthorization(ctx)
 		},
+		currentUser: usermgr.FromContext,
 	}
-	route.Get("/callback", callbackRedirectHandler.ServeHTTP)
+	route.With(usermgr.Middleware).Get("/callback", callbackRedirectHandler.ServeHTTP)
 
 	tokenHandler := &tokenHandler{
 		clientByClientID:    clientByClientID,
@@ -40,7 +42,7 @@ func RedirectWhenLoggedInAndAssigned(callbackURL string) func(http.Handler) http
 	return func(next http.Handler) http.Handler {
 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authReq, err := firstAuthorization(r.Context())
+			authReq, err := FirstAuthorization(r.Context())
 			if authReq == nil {
 				next.ServeHTTP(w, r)
 				return
@@ -53,12 +55,19 @@ func RedirectWhenLoggedInAndAssigned(callbackURL string) func(http.Handler) http
 				return
 			}
 
-			if authReq.InternalUserID == nil {
-				next.ServeHTTP(w, r)
+			if authReq.InternalUserID != nil {
+				http.Redirect(w, r, callbackURL, http.StatusSeeOther)
 				return
 			}
 
-			http.Redirect(w, r, callbackURL, http.StatusSeeOther)
+			user := usermgr.FromContext(r.Context())
+			if user != nil {
+				http.Redirect(w, r, callbackURL, http.StatusSeeOther)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+
 		})
 	}
 }

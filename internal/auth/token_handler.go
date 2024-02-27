@@ -9,8 +9,13 @@ import (
 	"net/http"
 
 	"github.com/go-oauth2/oauth2/v4/errors"
+	"golang.org/x/exp/slog"
 	"golang.org/x/oauth2"
 )
+
+func warnf(format string, opts ...any) {
+	slog.Warn(fmt.Sprintf(format, opts...))
+}
 
 type AccessTokenResponds struct {
 	AccessToken string `json:"access_token,omitempty"`
@@ -46,20 +51,20 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := th.checkCodeChallenge(r, authReq); err != nil {
-		log.Println("missmach between authorization and client")
+		warnf("missmach between authorization and client: %v", err)
 		http.Error(w, "not implemented yet", http.StatusNotImplemented)
 		return
 	}
 
 	if authReq.ClientID() != client.ClientID() {
-		log.Println("missmach between authorization and client")
+		warnf("missmach between authorization and client: %v", err)
 		http.Error(w, "not implemented yet", http.StatusNotImplemented)
 		return
 	}
 
 	b, err := json.Marshal(AccessTokenResponds{"xyz123", "Bearer", 10 * 60, "abc"})
 	if err != nil {
-		log.Printf("cannot generate token: %v", err)
+		warnf("cannot generate token: %v", err)
 		http.Error(w, "not implemented yet", http.StatusNotImplemented)
 		return
 	}

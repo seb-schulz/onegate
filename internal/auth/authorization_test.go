@@ -46,7 +46,7 @@ func TestCreateAuthorization(t *testing.T) {
 	route.Get("/foo", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Ok")
 
-		_, err := firstAuthorization(r.Context())
+		_, err := FirstAuthorization(r.Context())
 		if err != nil {
 			t.Errorf("cannot find authorization: %v", err)
 		}

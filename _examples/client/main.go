@@ -55,7 +55,7 @@ func callback(conf *oauth2.Config) http.HandlerFunc {
 
 		state := r.FormValue("state")
 		log.Println(state, client)
-		fmt.Fprint(w, "Hello World")
+		fmt.Fprintf(w, "Hello World with token: %s", tok)
 	})
 }
 

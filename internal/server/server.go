@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/httprate"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/seb-schulz/onegate/graph"
+	"github.com/seb-schulz/onegate/internal/auth"
 	"github.com/seb-schulz/onegate/internal/database"
 	"github.com/seb-schulz/onegate/internal/sessionmgr"
 	"github.com/seb-schulz/onegate/internal/ui"
@@ -67,11 +68,13 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 		r.Use(database.Middleware(db))
 		r.Use(sessionmgr.DefaultMiddleware(config.SessionKey))
 
+		r.Mount("/auth", auth.NewHandler())
+
 		r.Group(func(r chi.Router) {
 			r.Use(usermgr.Middleware)
 			r.Use(csrfMitigationMiddleware)
 
-			r.Mount("/login", newLoginRoute(config.Login))
+			r.With(auth.RedirectWhenLoggedInAndAssigned("/auth/callback")).Mount("/login", newLoginRoute(config.Login))
 
 			srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
 				DB:                      db,
