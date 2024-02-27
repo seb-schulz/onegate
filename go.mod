@@ -6,7 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.44
 	github.com/evanw/esbuild v0.20.1
 	github.com/go-chi/httplog/v2 v2.0.9
-	github.com/go-chi/httprate v0.8.0
+	github.com/go-chi/httprate v0.9.0
 	github.com/spf13/viper v1.18.2
 	github.com/vektah/gqlparser/v2 v2.5.11
 	golang.org/x/crypto v0.19.0
