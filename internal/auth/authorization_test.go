@@ -95,7 +95,7 @@ func TestAuthorizationByCode(t *testing.T) {
 		t.Errorf("cannot create authorization: %v", r.Error)
 	}
 
-	_, err = authorizationByCode(ctx, base64.RawStdEncoding.EncodeToString([]byte("non existing error")))
+	_, err = authorizationByCode(ctx, base64.URLEncoding.EncodeToString([]byte("non existing error")))
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Errorf("failed but with unexpected error msg: %v", err)
 	} else if err == nil {
@@ -107,7 +107,7 @@ func TestAuthorizationByCode(t *testing.T) {
 		t.Error("expected decoding error")
 	}
 
-	fetchedAuth, err := authorizationByCode(ctx, base64.RawURLEncoding.EncodeToString(code))
+	fetchedAuth, err := authorizationByCode(ctx, base64.URLEncoding.EncodeToString(code))
 	if err != nil {
 		t.Errorf("failed to get authorization by code: %v", err)
 	}
