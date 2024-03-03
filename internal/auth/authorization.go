@@ -24,6 +24,7 @@ type authorization interface {
 	authorizationCodeChallenger
 	redirecter
 	SetUserID(context.Context, uint) error
+	Delete(context.Context) error
 }
 
 type Authorization struct {
@@ -75,6 +76,15 @@ func (a *Authorization) SetUserID(ctx context.Context, userID uint) error {
 	r := database.FromContext(ctx).Model(a).Update("user_id", userID)
 	if r.Error != nil {
 		return fmt.Errorf("cannot update authorization: %w", r.Error)
+	}
+
+	return nil
+}
+
+func (a *Authorization) Delete(ctx context.Context) error {
+	r := database.FromContext(ctx).Delete(&a)
+	if r.Error != nil {
+		return fmt.Errorf("cannot delete authorization: %v", r.Error)
 	}
 
 	return nil

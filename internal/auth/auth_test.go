@@ -136,6 +136,9 @@ func TestAuthCodeFlow(t *testing.T) {
 		authorizationByCode: func(ctx context.Context, code string) (authorization, error) {
 			return mock.currentAuthorization, nil
 		},
+		deleteAuthorization: func(ctx context.Context, a authorization) error {
+			return nil
+		},
 	}
 	route.Post("/token", tokenHandler.ServeHTTP)
 

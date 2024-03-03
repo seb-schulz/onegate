@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -202,4 +203,65 @@ func FuzzTokenHandler_checkCodeChallenge(f *testing.F) {
 			t.Errorf("expected error but got no error")
 		}
 	})
+}
+
+func TestTokenHandler_ServeHTTP(t *testing.T) {
+	mockClient := mockClient{
+		uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d"),
+		"/",
+	}
+
+	verifier := oauth2.GenerateVerifier()
+
+	req := httptest.NewRequest("GET", fmt.Sprintf("/?grant_type=authorization_code&code_verifier=%s", verifier), nil)
+	req.SetBasicAuth("1", "secret")
+	w := httptest.NewRecorder()
+
+	clientFetcherCalled := 0
+	authorizationByCodeCalled := 0
+	deleteAuthorizationCalled := 0
+
+	handler := &tokenHandler{
+		clientByClientID: func(ctx context.Context, clientID string) (client, error) {
+			clientFetcherCalled++
+			return &mockClient, nil
+		},
+		authorizationByCode: func(ctx context.Context, code string) (authorization, error) {
+			authorizationByCodeCalled++
+			return &mockAuthorization{
+				Authorization{
+					InternalCodeChallenge: oauth2.S256ChallengeFromVerifier(verifier),
+					InternalClientID:      mockClient.c,
+				},
+				mockClient,
+				nil,
+			}, nil
+		},
+		deleteAuthorization: func(ctx context.Context, a authorization) error {
+			deleteAuthorizationCalled++
+			return nil
+		},
+	}
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
+
+	if clientFetcherCalled != 1 {
+		t.Errorf("called client fetcher %d times", clientFetcherCalled)
+	}
+
+	if authorizationByCodeCalled != 1 {
+		t.Errorf("called authorization fetcher %d times", authorizationByCodeCalled)
+	}
+
+	if deleteAuthorizationCalled != 1 {
+		t.Errorf("called authorization deletion %d times", deleteAuthorizationCalled)
+	}
+
+	if got, expected := resp.StatusCode, http.StatusOK; got != expected {
+		t.Errorf("expected status code %d but got %d", expected, got)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	t.Logf("Result is \"%s\"", body)
 }

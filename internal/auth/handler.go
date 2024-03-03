@@ -32,6 +32,9 @@ func NewHandler() http.Handler {
 	tokenHandler := &tokenHandler{
 		clientByClientID:    clientByClientID,
 		authorizationByCode: authorizationByCode,
+		deleteAuthorization: func(ctx context.Context, a authorization) error {
+			return a.Delete(ctx)
+		},
 	}
 	route.Post("/token", tokenHandler.ServeHTTP)
 

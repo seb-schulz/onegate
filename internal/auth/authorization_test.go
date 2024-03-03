@@ -114,3 +114,44 @@ func TestAuthorizationByCode(t *testing.T) {
 
 	t.Logf("fetchedAuth: %v", fetchedAuth)
 }
+
+func TestDeleteAuthorization(t *testing.T) {
+	db, err := database.Open()
+	if err != nil {
+		panic(err)
+	}
+
+	tx := db.Begin()
+	defer tx.Rollback()
+
+	entryExists := func(id any) bool {
+		exists := false
+		tx.Raw("SELECT 1 FROM authorizations WHERE id = ?", id).Scan(&exists)
+		return exists
+	}
+
+	ctx := database.WithContext(context.Background(), tx)
+
+	client := Client{
+		ID: uuid.New(),
+	}
+	tx.FirstOrCreate(&client)
+
+	authReq := Authorization{Client: client}
+
+	if res := tx.FirstOrCreate(&authReq); res.Error != nil {
+		t.Errorf("failed to create authorization: %v", err)
+	}
+
+	if !entryExists(authReq.ID) {
+		t.Fatal("entry does not exist")
+	}
+
+	if err := authReq.Delete(ctx); err != nil {
+		t.Errorf("failed to delete authorization: %v", err)
+	}
+
+	if entryExists(authReq.ID) {
+		t.Fatal("entry does exist")
+	}
+}

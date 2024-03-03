@@ -27,6 +27,7 @@ type AccessTokenResponds struct {
 type tokenHandler struct {
 	clientByClientID    clientByClientIDFn
 	authorizationByCode func(ctx context.Context, code string) (authorization, error)
+	deleteAuthorization func(context.Context, authorization) error
 	ClientSecretVerifier
 }
 
@@ -38,15 +39,21 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := th.checkGrantType(r); err != nil {
-		httpAuthError(w, err)
-		return
-	}
-
 	authReq, err := th.authorizationByCode(r.Context(), r.FormValue("code"))
 	if err != nil {
 		log.Printf("authorization not found: %v", err)
 		httpAuthError(w, errors.ErrInvalidClient)
+		return
+	}
+
+	// Deletion might be defered in the future so that it happens
+	// when anything else is processed
+	if err := th.deleteAuthorization(r.Context(), authReq); err != nil {
+		warnf("cannot delete authorization: %v", err)
+	}
+
+	if err := th.checkGrantType(r); err != nil {
+		httpAuthError(w, err)
 		return
 	}
 
@@ -57,7 +64,7 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := th.checkCodeChallenge(r, authReq); err != nil {
-		warnf("missmach between authorization and client: %v", err)
+		warnf("missmach with code challenge: %v", err)
 		httpAuthError(w, errors.ErrInvalidRequest)
 		return
 	}
