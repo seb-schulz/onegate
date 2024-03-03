@@ -9,6 +9,10 @@ import (
 	"github.com/go-oauth2/oauth2/v4/errors"
 )
 
+func httpAuthError(w http.ResponseWriter, err error) {
+	http.Error(w, errors.Descriptions[err], errors.StatusCodes[err])
+}
+
 type authorizationRequestHandler struct {
 	clientByClientID    clientByClientIDFn
 	createAuthorization func(ctx context.Context, client client, state string, codeChallenge string) error
@@ -41,28 +45,28 @@ func (auth authorizationRequestHandler) checkCodeChallengeMethod(r *http.Request
 func (auth authorizationRequestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// log.Printf("Query params: %#v", r.URL.Query())
 	if err := auth.checkMethod(r); err != nil {
-		http.Error(w, errors.Descriptions[err], errors.StatusCodes[err])
+		httpAuthError(w, err)
 		return
 	}
 
 	if err := auth.checkResponseType(r.FormValue("response_type")); err != nil {
-		http.Error(w, errors.Descriptions[err], errors.StatusCodes[err])
+		httpAuthError(w, err)
 		return
 	}
 
 	if err := auth.checkCodeChallengeMethod(r); err != nil {
-		http.Error(w, errors.Descriptions[err], errors.StatusCodes[err])
+		httpAuthError(w, err)
 		return
 	}
 
 	client, err := auth.clientByClientID(r.Context(), r.FormValue("client_id"))
 	if err != nil {
-		http.Error(w, errors.Descriptions[errors.ErrInvalidRequest], errors.StatusCodes[errors.ErrInvalidRequest])
+		httpAuthError(w, errors.ErrInvalidRequest)
 		return
 	}
 
 	if auth.createAuthorization(r.Context(), client, r.FormValue("state"), r.FormValue("code_challenge")); err != nil {
-		http.Error(w, errors.Descriptions[errors.ErrInvalidRequest], errors.StatusCodes[errors.ErrInvalidRequest])
+		httpAuthError(w, errors.ErrInvalidRequest)
 		return
 	}
 

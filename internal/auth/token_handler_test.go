@@ -162,14 +162,14 @@ func TestTokenHandler_checkCodeChallenge(t *testing.T) {
 				inputCodeChallenger = oauth2.S256ChallengeFromVerifier(origVerifier)
 				inputUrl = fmt.Sprintf("/foo?code_verifier=%s", newVerifier)
 				return
-			}, errCodeChallengeMissmatch,
+			}, errors.ErrInvalidCodeChallenge,
 		},
 		{
 			func() (inputUrl string, inputCodeChallenger string) {
 				inputCodeChallenger = oauth2.S256ChallengeFromVerifier(oauth2.GenerateVerifier())
 				inputUrl = "/foo"
 				return
-			}, errCodeChallengeMissmatch,
+			}, errors.ErrMissingCodeVerifier,
 		},
 	} {
 		url, cc := tc.setup()

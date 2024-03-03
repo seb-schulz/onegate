@@ -13,8 +13,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var errCodeChallengeMissmatch = fmt.Errorf("missmatch of code challenge")
-
 func warnf(format string, opts ...any) {
 	slog.Warn(fmt.Sprintf(format, opts...))
 }
@@ -36,38 +34,38 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	client, err := th.getAndVerifyClient(r)
 	if err != nil {
 		log.Printf("cannot verify client: %v", err)
-		http.Error(w, "invalid", http.StatusBadRequest)
+		httpAuthError(w, errors.ErrInvalidClient)
 		return
 	}
 
 	if err := th.checkGrantType(r); err != nil {
-		http.Error(w, errors.Descriptions[err], errors.StatusCodes[err])
+		httpAuthError(w, err)
 		return
 	}
 
 	authReq, err := th.authorizationByCode(r.Context(), r.FormValue("code"))
 	if err != nil {
 		log.Printf("authorization not found: %v", err)
-		http.Error(w, "not implemented yet", http.StatusNotImplemented)
+		httpAuthError(w, errors.ErrInvalidClient)
 		return
 	}
 
 	if authReq.ClientID() != client.ClientID() {
 		warnf("missmach between authorization and client: %v", err)
-		http.Error(w, "not implemented yet", http.StatusNotImplemented)
+		httpAuthError(w, errors.ErrInvalidClient)
 		return
 	}
 
 	if err := th.checkCodeChallenge(r, authReq); err != nil {
 		warnf("missmach between authorization and client: %v", err)
-		http.Error(w, "not implemented yet", http.StatusNotImplemented)
+		httpAuthError(w, errors.ErrInvalidRequest)
 		return
 	}
 
 	b, err := json.Marshal(AccessTokenResponds{"xyz123", "Bearer", 10 * 60, "abc"})
 	if err != nil {
 		warnf("cannot generate token: %v", err)
-		http.Error(w, "not implemented yet", http.StatusNotImplemented)
+		http.Error(w, "failed to provde access token", http.StatusInternalServerError)
 		return
 	}
 
@@ -81,8 +79,12 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (th *tokenHandler) checkCodeChallenge(r *http.Request, auth authorizationCodeChallenger) error {
 	cv := r.FormValue("code_verifier")
+	if cv == "" {
+		return errors.ErrMissingCodeVerifier
+	}
+
 	if subtle.ConstantTimeCompare([]byte(auth.CodeChallenge()), []byte(oauth2.S256ChallengeFromVerifier(cv))) != 1 {
-		return errCodeChallengeMissmatch
+		return errors.ErrInvalidCodeChallenge
 	}
 	return nil
 }
