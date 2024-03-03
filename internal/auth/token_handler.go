@@ -13,6 +13,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+var errCodeChallengeMissmatch = fmt.Errorf("missmatch of code challenge")
+
 func warnf(format string, opts ...any) {
 	slog.Warn(fmt.Sprintf(format, opts...))
 }
@@ -50,13 +52,13 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := th.checkCodeChallenge(r, authReq); err != nil {
+	if authReq.ClientID() != client.ClientID() {
 		warnf("missmach between authorization and client: %v", err)
 		http.Error(w, "not implemented yet", http.StatusNotImplemented)
 		return
 	}
 
-	if authReq.ClientID() != client.ClientID() {
+	if err := th.checkCodeChallenge(r, authReq); err != nil {
 		warnf("missmach between authorization and client: %v", err)
 		http.Error(w, "not implemented yet", http.StatusNotImplemented)
 		return
@@ -77,10 +79,10 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func (th *tokenHandler) checkCodeChallenge(r *http.Request, auth authorization) error {
+func (th *tokenHandler) checkCodeChallenge(r *http.Request, auth authorizationCodeChallenger) error {
 	cv := r.FormValue("code_verifier")
 	if subtle.ConstantTimeCompare([]byte(auth.CodeChallenge()), []byte(oauth2.S256ChallengeFromVerifier(cv))) != 1 {
-		return fmt.Errorf("missmatch of code challenge")
+		return errCodeChallengeMissmatch
 	}
 	return nil
 }

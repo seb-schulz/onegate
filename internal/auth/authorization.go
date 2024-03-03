@@ -12,12 +12,16 @@ import (
 	"github.com/seb-schulz/onegate/internal/sessionmgr"
 )
 
+type authorizationCodeChallenger interface {
+	CodeChallenge() string
+}
+
 type authorization interface {
 	ClientID() uuid.UUID
 	UserID() uint
 	State() string
 	Code() string
-	CodeChallenge() string
+	authorizationCodeChallenger
 	redirecter
 	SetUserID(context.Context, uint) error
 }
