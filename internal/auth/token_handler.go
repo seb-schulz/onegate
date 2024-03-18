@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/go-oauth2/oauth2/v4/errors"
+	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
 	"golang.org/x/oauth2"
 )
@@ -69,7 +70,7 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b, err := json.Marshal(AccessTokenResponds{"xyz123", "Bearer", 10 * 60, "abc"})
+	b, err := json.Marshal(AccessTokenResponds{fmt.Sprint(uuid.New()), "Bearer", 5, "abc"})
 	if err != nil {
 		warnf("cannot generate token: %v", err)
 		http.Error(w, "failed to provde access token", http.StatusInternalServerError)

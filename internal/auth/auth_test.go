@@ -187,7 +187,7 @@ func TestAuthCodeFlow(t *testing.T) {
 	} else if *mock.currentAuthorization.userID != mockUser.ID {
 		t.Errorf("expected user ID %v but got %v", mockUser.ID, *mock.currentAuthorization.userID)
 	}
-	// log.Println(tok.Extra("id_token"))
+	// t.Log(tok.Extra("id_token"))
 
 	// client := conf.Client(ctx, tok)
 	// client.Get("...")
