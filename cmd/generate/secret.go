@@ -1,4 +1,4 @@
-package config
+package generate
 
 import (
 	"crypto/rand"
@@ -11,13 +11,13 @@ import (
 var byteLength uint16
 
 func init() {
-	configCmd.AddCommand(randomKeyCmd)
-	randomKeyCmd.Flags().Uint16VarP(&byteLength, "bytes", "b", 32, "byte size of generated key ")
+	generateCmd.AddCommand(secretCmd)
+	secretCmd.Flags().Uint16VarP(&byteLength, "bytes", "b", 32, "byte size of generated key ")
 }
 
-var randomKeyCmd = &cobra.Command{
-	Use:     "randomKey",
-	Aliases: []string{"randKey", "rk"},
+var secretCmd = &cobra.Command{
+	Use:     "secret",
+	Aliases: []string{"s"},
 	Short:   "Show current configuration",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		r := make([]byte, byteLength)
