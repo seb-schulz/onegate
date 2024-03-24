@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/cobra"
 )
 
@@ -24,12 +25,7 @@ var publicKeyCmd = &cobra.Command{
 			return fmt.Errorf("failed to read key: %w", err)
 		}
 
-		var block *pem.Block
-		if block, _ = pem.Decode(rawPrivKey); block == nil {
-			return fmt.Errorf("cannot parse private key")
-		}
-
-		privateKey, err := x509.ParseECPrivateKey(block.Bytes)
+		privateKey, err := jwt.ParseECPrivateKeyFromPEM(rawPrivKey)
 		if err != nil {
 			return fmt.Errorf("failed to parse private key: %w", err)
 		}
