@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/seb-schulz/onegate/internal/auth"
 	"github.com/seb-schulz/onegate/internal/config"
 	"github.com/seb-schulz/onegate/internal/server"
 	"github.com/spf13/cobra"
@@ -30,6 +31,7 @@ func runServeCmd(cmd *cobra.Command, args []string) error {
 				ValidMethods: config.Config.UrlLogin.ValidMethods,
 				BaseUrl:      *config.Config.BaseUrl.JoinPath("login"),
 			},
+			Auth: auth.Config{},
 		},
 		HttpPort:  config.Config.Server.HttpPort,
 		ServeType: server.ServeType(config.Config.Server.Kind),

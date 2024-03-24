@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/go-oauth2/oauth2/v4/errors"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 )
@@ -182,6 +183,7 @@ func TestTokenHandler_checkCodeChallenge(t *testing.T) {
 		}
 	}
 }
+
 func FuzzTokenHandler_checkCodeChallenge(f *testing.F) {
 	for i := 0; i < 100; i++ {
 		f.Add(rand.Int())
@@ -206,10 +208,16 @@ func FuzzTokenHandler_checkCodeChallenge(f *testing.F) {
 }
 
 func TestTokenHandler_ServeHTTP(t *testing.T) {
+	privKey, err := jwt.ParseECPrivateKeyFromPEM([]byte(privTestKey))
+	if err != nil {
+		t.Fatalf("cannot parse private test key: %v", err)
+	}
+
 	mockClient := mockClient{
 		uuid.MustParse("2e532bfa50a44f1c84aa5af13fa4612d"),
 		"/",
 	}
+	mockedUserID := uint(1)
 
 	verifier := oauth2.GenerateVerifier()
 
@@ -222,6 +230,8 @@ func TestTokenHandler_ServeHTTP(t *testing.T) {
 	deleteAuthorizationCalled := 0
 
 	handler := &tokenHandler{
+		issuerUrl:  "http://example.com",
+		privateKey: privKey,
 		clientByClientID: func(ctx context.Context, clientID string) (client, error) {
 			clientFetcherCalled++
 			return &mockClient, nil
@@ -234,7 +244,7 @@ func TestTokenHandler_ServeHTTP(t *testing.T) {
 					InternalClientID:      mockClient.c,
 				},
 				mockClient,
-				nil,
+				&mockedUserID,
 			}, nil
 		},
 		deleteAuthorization: func(ctx context.Context, a authorization) error {

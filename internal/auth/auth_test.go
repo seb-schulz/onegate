@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/seb-schulz/onegate/internal/model"
 	"gorm.io/gorm"
@@ -56,11 +57,23 @@ func (ma *mockAuthorization) SetUserID(ctx context.Context, userID uint) error {
 	return nil
 }
 
+func (ma *mockAuthorization) UserID() uint {
+	if ma.userID == nil {
+		return ma.Authorization.UserID()
+	}
+	return *ma.userID
+}
+
 func TestAuthCodeFlow(t *testing.T) {
 	var (
 		code         string
 		expectedBody = "Done \\o/"
 	)
+
+	privKey, err := jwt.ParseECPrivateKeyFromPEM([]byte(privTestKey))
+	if err != nil {
+		t.Fatalf("cannot parse private test key: %v", err)
+	}
 
 	client_ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		code = r.FormValue("code")
@@ -132,6 +145,7 @@ func TestAuthCodeFlow(t *testing.T) {
 	route.Get("/callback", callbackRedirectHandler.ServeHTTP)
 
 	tokenHandler := &tokenHandler{
+		privateKey:       privKey,
 		clientByClientID: clientByClientID,
 		authorizationByCode: func(ctx context.Context, code string) (authorization, error) {
 			return mock.currentAuthorization, nil
@@ -144,6 +158,7 @@ func TestAuthCodeFlow(t *testing.T) {
 
 	ts := httptest.NewServer(route)
 	defer ts.Close()
+	tokenHandler.issuerUrl = ts.URL
 
 	conf := &oauth2.Config{
 		ClientID:     "123",
@@ -187,7 +202,7 @@ func TestAuthCodeFlow(t *testing.T) {
 	} else if *mock.currentAuthorization.userID != mockUser.ID {
 		t.Errorf("expected user ID %v but got %v", mockUser.ID, *mock.currentAuthorization.userID)
 	}
-	// t.Log(tok.Extra("id_token"))
+	t.Log(tok.Extra("id_token"))
 
 	// client := conf.Client(ctx, tok)
 	// client.Get("...")

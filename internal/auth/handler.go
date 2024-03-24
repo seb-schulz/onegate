@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,7 +12,12 @@ import (
 	"github.com/seb-schulz/onegate/internal/usermgr"
 )
 
-func NewHandler() http.Handler {
+type Config struct {
+	IssuerUrl  string
+	PrivateKey *ecdsa.PrivateKey
+}
+
+func NewHandler(c *Config) http.Handler {
 	route := chi.NewRouter()
 
 	authorizationRequestHandler := authorizationRequestHandler{
@@ -30,6 +36,8 @@ func NewHandler() http.Handler {
 	route.With(usermgr.Middleware).Get("/callback", callbackRedirectHandler.ServeHTTP)
 
 	tokenHandler := &tokenHandler{
+		issuerUrl:           c.IssuerUrl,
+		privateKey:          c.PrivateKey,
 		clientByClientID:    clientByClientID,
 		authorizationByCode: authorizationByCode,
 		deleteAuthorization: func(ctx context.Context, a authorization) error {

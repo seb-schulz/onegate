@@ -2,11 +2,13 @@ package auth
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-oauth2/oauth2/v4/errors"
 	"github.com/google/uuid"
@@ -19,13 +21,15 @@ func warnf(format string, opts ...any) {
 }
 
 type AccessTokenResponds struct {
-	AccessToken string `json:"access_token,omitempty"`
-	TokenType   string `json:"token_type,omitempty"`
-	ExpiresIn   int    `json:"expires_in,omitempty"`
-	IDToken     string `json:"id_token,omitempty"`
+	AccessToken string  `json:"access_token,omitempty"`
+	TokenType   string  `json:"token_type,omitempty"`
+	ExpiresIn   int     `json:"expires_in,omitempty"`
+	IDToken     IDToken `json:"id_token,omitempty"`
 }
 
 type tokenHandler struct {
+	issuerUrl           string
+	privateKey          *ecdsa.PrivateKey
 	clientByClientID    clientByClientIDFn
 	authorizationByCode func(ctx context.Context, code string) (authorization, error)
 	deleteAuthorization func(context.Context, authorization) error
@@ -70,7 +74,15 @@ func (th *tokenHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b, err := json.Marshal(AccessTokenResponds{fmt.Sprint(uuid.New()), "Bearer", 5, "abc"})
+	b, err := json.Marshal(AccessTokenResponds{
+		fmt.Sprint(uuid.New()), "Bearer", 5, IDToken{
+			th.privateKey,
+			th.issuerUrl,
+			time.Hour,
+			authReq.UserID(),
+			authReq.ClientID(),
+		},
+	})
 	if err != nil {
 		warnf("cannot generate token: %v", err)
 		http.Error(w, "failed to provde access token", http.StatusInternalServerError)

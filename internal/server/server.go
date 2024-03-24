@@ -34,6 +34,7 @@ type (
 		SessionKey              []byte
 		UserRegistrationEnabled bool
 		Login                   LoginConfig
+		Auth                    auth.Config
 	}
 
 	ServerConfig struct {
@@ -68,7 +69,7 @@ func newRouter(config *RouterConfig) (http.Handler, error) {
 		r.Use(database.Middleware(db))
 		r.Use(sessionmgr.DefaultMiddleware(config.SessionKey))
 
-		r.Mount("/auth", auth.NewHandler())
+		r.Mount("/auth", auth.NewHandler(&config.Auth))
 
 		r.Group(func(r chi.Router) {
 			r.Use(usermgr.Middleware)
