@@ -3,11 +3,27 @@
 
 version: 2
 updates:
+  - package-ecosystem: "devcontainers"
+    directory: "/"
+    schedule:
+      interval: "weekly"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    groups:
+      backend-updates:
+        applies-to: version-updates
+        patterns: ["*"]
+  - package-ecosystem: "npm"
+    directory: "/internal/ui/_client"
+    schedule:
+      interval: "weekly"
+    groups:
+      client-updates:
+        applies-to: version-updates
+        patterns: ["*"]
