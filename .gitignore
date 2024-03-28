@@ -356,5 +356,7 @@ __debug_bin*
 # Go workspace file
 go.work
 /data
-.env
-.env.yaml
+.env*
+!.env.example
+.onegate.conf
+!.onegate.conf.example
