@@ -31,7 +31,10 @@ func runServeCmd(cmd *cobra.Command, args []string) error {
 				ValidMethods: config.Config.UrlLogin.ValidMethods,
 				BaseUrl:      *config.Config.BaseUrl.JoinPath("login"),
 			},
-			Auth: auth.Config{},
+			Auth: auth.Config{
+				IssuerUrl:  config.Config.BaseUrl.String(),
+				PrivateKey: config.Config.PrivateAuthKey,
+			},
 		},
 		HttpPort:  config.Config.Server.HttpPort,
 		ServeType: server.ServeType(config.Config.Server.Kind),

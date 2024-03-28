@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"encoding/base64"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-chi/httplog/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 )
@@ -46,11 +48,12 @@ type (
 			ID      string
 			Origins []string
 		}
-		DB       db
-		Session  session
-		UrlLogin urlLogin
-		BaseUrl  url.URL
-		Server   struct {
+		DB             db
+		Session        session
+		UrlLogin       urlLogin
+		BaseUrl        url.URL
+		PrivateAuthKey *ecdsa.PrivateKey
+		Server         struct {
 			Kind     serverKind
 			HttpPort string
 			Limit    struct {
@@ -99,6 +102,7 @@ features:
 logger:
   level: "info"
   file: ""
+privateAuthKey: ""
 `)
 )
 
@@ -120,6 +124,7 @@ func init() {
 		stringToLogLevelHookFunc(),
 		base64StringToBytesHookFunc(),
 		stringToURLHookFunc(),
+		stringToEcdsaPrivateKeyHookFunc(),
 		mapstructure.StringToTimeDurationHookFunc(),
 		mapstructure.StringToSliceHookFunc(","),
 		base64StringToStringHookFunc(),
@@ -202,6 +207,22 @@ func stringToURLHookFunc() mapstructure.DecodeHookFunc {
 		}
 
 		return data, nil
+	}
+}
+
+func stringToEcdsaPrivateKeyHookFunc() mapstructure.DecodeHookFunc {
+	return func(f reflect.Type, t reflect.Type, data interface{}) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+		if t != reflect.TypeOf(&ecdsa.PrivateKey{}) {
+			return data, nil
+		}
+		privKey, err := jwt.ParseECPrivateKeyFromPEM([]byte(data.(string)))
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse private key: %w", err)
+		}
+		return privKey, nil
 	}
 }
 
