@@ -267,58 +267,6 @@ func stringToLogLevelHookFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
-func (x db) MarshalYAML() (interface{}, error) {
-	return db{base64.StdEncoding.EncodeToString([]byte(x.Dsn)), x.Debug}, nil
-}
-
-func (s session) MarshalYAML() (interface{}, error) {
-	return session{base64.StdEncoding.EncodeToString([]byte(s.Key)), s.ActiveFor}, nil
-}
-
-func (u urlLogin) MarshalYAML() (interface{}, error) {
-	return struct {
-		Key          string
-		ExpiresIn    time.Duration
-		ValidMethods []string `yaml:",flow"`
-	}{base64.StdEncoding.EncodeToString(u.Key), u.ExpiresIn, u.ValidMethods}, nil
-}
-
-func (k serverKind) MarshalYAML() (interface{}, error) {
-	if k == ServerKindHttp {
-		return "http", nil
-	}
-	if k == ServerKindFcgi {
-		return "fcgi", nil
-	}
-	return nil, fmt.Errorf("invalid kind of server")
-}
-
-func (c config) MarshalYAML() (interface{}, error) {
-	return struct {
-		RelyingParty struct {
-			Name    string
-			ID      string
-			Origins []string
-		}
-		DB       db
-		Session  session
-		UrlLogin urlLogin
-		BaseUrl  string
-		Server   struct {
-			Kind     serverKind
-			HttpPort string
-			Limit    struct {
-				RequestLimit int
-				WindowLength time.Duration
-			}
-		}
-		Features struct {
-			UserRegistration bool
-		}
-		Logger logger
-	}{c.RelyingParty, c.DB, c.Session, c.UrlLogin, c.BaseUrl.String(), c.Server, c.Features, c.Logger}, nil
-}
-
 func (c config) httpPort() string {
 	if c.Server.Kind != ServerKindHttp {
 		return ""
