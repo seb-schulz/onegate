@@ -62,7 +62,7 @@ require (
 	go.pact.im/x/option v0.0.6
 	go.pact.im/x/phcformat v0.0.6
 	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.19.0
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
