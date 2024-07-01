@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/99designs/gqlgen v0.17.49
-	github.com/evanw/esbuild v0.21.5
+	github.com/evanw/esbuild v0.22.0
 	github.com/go-chi/httplog/v2 v2.0.11
 	github.com/go-chi/httprate v0.9.0
 	github.com/spf13/viper v1.19.0
@@ -36,7 +36,7 @@ require (
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/go-chi/chi/v5 v5.0.14
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-oauth2/oauth2/v4 v4.5.2
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/go-webauthn/webauthn v0.10.2
