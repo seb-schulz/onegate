@@ -4,20 +4,20 @@ go 1.21
 
 require (
 	github.com/99designs/gqlgen v0.17.49
-	github.com/evanw/esbuild v0.21.5
-	github.com/go-chi/httplog/v2 v2.0.11
-	github.com/go-chi/httprate v0.9.0
+	github.com/evanw/esbuild v0.23.0
+	github.com/go-chi/httplog/v2 v2.1.1
+	github.com/go-chi/httprate v0.10.0
 	github.com/spf13/viper v1.19.0
 	github.com/vektah/gqlparser/v2 v2.5.16
-	golang.org/x/crypto v0.24.0
+	golang.org/x/crypto v0.25.0
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8
 	gorm.io/driver/mysql v1.5.7
-	gorm.io/gorm v1.25.10
+	gorm.io/gorm v1.25.11
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.6.0 // indirect
 	github.com/go-webauthn/x v0.1.9 // indirect
 	github.com/google/go-tpm v0.9.0 // indirect
@@ -28,7 +28,7 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/term v0.21.0 // indirect
+	golang.org/x/term v0.22.0 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )
 
@@ -36,7 +36,7 @@ require (
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/go-chi/chi/v5 v5.0.14
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-oauth2/oauth2/v4 v4.5.2
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/go-webauthn/webauthn v0.10.2
@@ -65,7 +65,7 @@ require (
 	golang.org/x/mod v0.18.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/oauth2 v0.21.0
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
