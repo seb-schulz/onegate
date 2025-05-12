@@ -1,3 +1,5 @@
+**This repository has been archived and is no longer maintained. The code remains available for reference purposes, but no further updates or support will be provided.**
+
 # OneGate
 
 OneGate is a legacy-free single-sign on service. It uses rather passkeys or fido2 stick for user authentication than passwords.
